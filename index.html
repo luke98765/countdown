@@ -3,103 +3,59 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Time Progress</title>
+  <title>SEGL Countdown</title>
   <style>
     :root{
-      --bg1:#0b0f17;
-      --bg2:#0f172a;
-      --card:rgba(255,255,255,.06);
-      --stroke:rgba(255,255,255,.10);
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.65);
-      --accent:#7c3aed; /* purple */
-      --accent2:#22c55e; /* green */
+      --bg:#ffffff;
+      --text:#111111;
+      --muted:#6b7280;     /* gray */
+      --track:#e5e7eb;     /* light gray */
+      --ring:#111111;      /* black */
     }
     *{box-sizing:border-box}
     html,body{height:100%;margin:0}
     body{
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color:var(--text);
-      background: radial-gradient(1200px 700px at 20% 20%, #1f1147 0%, transparent 60%),
-                  radial-gradient(1200px 700px at 80% 30%, #0b3b2a 0%, transparent 55%),
-                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      background: var(--bg);
+      color: var(--text);
       display:grid;
       place-items:center;
       padding:24px;
     }
-    .card{
-      width:min(980px, 96vw);
-      border:1px solid var(--stroke);
-      background:var(--card);
-      backdrop-filter: blur(10px);
-      border-radius:24px;
-      padding:26px;
-      box-shadow: 0 20px 70px rgba(0,0,0,.45);
-      display:grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap:22px;
-      align-items:center;
+    .wrap{
+      width:min(720px, 95vw);
+      text-align:center;
     }
-    @media (max-width: 820px){
-      .card{grid-template-columns:1fr}
-    }
-    .title{
-      font-weight:700;
-      letter-spacing:-0.02em;
-      font-size:clamp(18px, 2.2vw, 24px);
+    h1{
       margin:0 0 10px 0;
-      color:var(--text);
+      font-size:clamp(22px, 3vw, 28px);
+      letter-spacing:-0.02em;
+      font-weight:700;
     }
-    .big{
-      font-size:clamp(34px, 4vw, 52px);
-      font-weight:800;
+    .countdown{
+      margin:0 0 18px 0;
+      font-size:clamp(24px, 4.2vw, 44px);
       letter-spacing:-0.03em;
-      margin:0;
-      line-height:1.05;
+      font-weight:700;
     }
     .sub{
-      margin:10px 0 0;
+      margin:0 0 18px 0;
       color:var(--muted);
-      font-size:clamp(14px, 1.6vw, 16px);
+      font-size:clamp(13px, 1.8vw, 15px);
     }
-    .pillrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-    .pill{
-      border:1px solid var(--stroke);
-      background:rgba(255,255,255,.05);
-      padding:10px 12px;
-      border-radius:999px;
-      font-size:14px;
-      color:var(--muted);
-    }
-    canvas{width:100%;height:auto;display:block}
-    .right{
-      display:grid;
-      place-items:center;
-      padding:10px;
-    }
+    canvas{width:min(520px, 85vw); height:auto; display:block; margin: 0 auto;}
   </style>
 </head>
 <body>
-  <div class="card">
-    <div>
-      <p class="title">Progress</p>
-      <p class="big" id="headline">—</p>
-      <p class="sub" id="range">—</p>
-
-      <div class="pillrow">
-        <div class="pill" id="p1">—</div>
-        <div class="pill" id="p2">—</div>
-        <div class="pill" id="p3">—</div>
-      </div>
-    </div>
-
-    <div class="right">
-      <canvas id="ring" width="900" height="900"></canvas>
-    </div>
+  <div class="wrap">
+    <h1>SEGL Countdown</h1>
+    <div class="countdown" id="timeleft">—</div>
+    <div class="sub" id="daterange">—</div>
+    <canvas id="ring" width="900" height="900"></canvas>
   </div>
 
 <script>
-  // ✅ EDIT THESE (use your local timezone offset in the string)
+  // ✅ EDIT THESE IF YOU NEED
   const START = new Date("2026-01-24T12:00:00-05:00");
   const END   = new Date("2026-05-23T12:00:00-04:00");
 
@@ -107,11 +63,12 @@
   const ctx = canvas.getContext("2d");
 
   function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
+  function pad(n){ return String(n).padStart(2,"0"); }
 
   function fmtDate(d){
     return d.toLocaleString(undefined, { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" });
   }
-  function pad(n){ return String(n).padStart(2,"0"); }
+
   function fmtDHMS(ms){
     ms = Math.max(0, ms);
     const s = Math.floor(ms/1000);
@@ -119,7 +76,7 @@
     const hrs  = Math.floor((s%86400)/3600);
     const mins = Math.floor((s%3600)/60);
     const secs = s%60;
-    return `${days}d ${pad(hrs)}h ${pad(mins)}m ${pad(secs)}s`;
+    return `${days}d ${pad(hrs)}h ${pad(mins)}m ${pad(secs)}s left`;
   }
 
   function drawRing(frac){
@@ -128,42 +85,38 @@
     const w = canvas.width, h = canvas.height;
     const cx = w/2, cy = h/2;
 
-    const rOuter = Math.min(w,h) * 0.40;
-    const rInner = rOuter * 0.72;
+    const r = Math.min(w,h) * 0.36;
+    const line = r * 0.22; // thickness
     const startAngle = -Math.PI/2;
+    const endAngle = startAngle + frac * Math.PI * 2;
 
     ctx.clearRect(0,0,w,h);
 
-    // background ring
+    // track
     ctx.beginPath();
-    ctx.arc(cx, cy, (rOuter+rInner)/2, 0, Math.PI*2);
-    ctx.strokeStyle = "rgba(255,255,255,.12)";
-    ctx.lineWidth = (rOuter-rInner);
+    ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--track").trim();
+    ctx.lineWidth = line;
     ctx.lineCap = "round";
     ctx.stroke();
 
-    // progress ring with gradient
-    const endAngle = startAngle + frac * Math.PI * 2;
-    const grad = ctx.createLinearGradient(cx - rOuter, cy - rOuter, cx + rOuter, cy + rOuter);
-    grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
-    grad.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue("--accent2").trim());
-
+    // progress
     ctx.beginPath();
-    ctx.arc(cx, cy, (rOuter+rInner)/2, startAngle, endAngle);
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = (rOuter-rInner);
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--ring").trim();
+    ctx.lineWidth = line;
     ctx.lineCap = "round";
     ctx.stroke();
 
-    // center text
-    const pct = Math.round(frac*100);
-    ctx.fillStyle = "rgba(255,255,255,.92)";
+    // center percent (minimal)
+    const pct = Math.round(frac * 100);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--text").trim();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = "800 110px system-ui";
-    ctx.fillText(pct + "%", cx, cy - 10);
-    ctx.font = "500 34px system-ui";
-    ctx.fillStyle = "rgba(255,255,255,.65)";
+    ctx.font = "700 96px system-ui";
+    ctx.fillText(`${pct}%`, cx, cy);
+    ctx.font = "500 26px system-ui";
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim();
     ctx.fillText("complete", cx, cy + 70);
   }
 
@@ -171,30 +124,19 @@
     const now = new Date();
     const total = END - START;
     const passed = now - START;
-    const fracRaw = passed / total;
-    const frac = clamp(fracRaw, 0, 1);
+    const frac = clamp(passed / total, 0, 1);
+
+    // Only running countdown: time left
+    const remainingMs = END - now;
+    document.getElementById("timeleft").textContent = fmtDHMS(remainingMs);
+
+    // small date range (not a countdown)
+    document.getElementById("daterange").textContent =
+      `${fmtDate(START)} → ${fmtDate(END)}`;
 
     drawRing(frac);
 
-    const remainingMs = END - now;
-    const passedMs = now - START;
-
-    document.getElementById("headline").textContent =
-      `${(frac*100).toFixed(2)}% complete`;
-
-    document.getElementById("range").textContent =
-      `${fmtDate(START)} → ${fmtDate(END)}`;
-
-    document.getElementById("p1").textContent =
-      `Time left: ${fmtDHMS(remainingMs)}`;
-
-    document.getElementById("p2").textContent =
-      `Time passed: ${fmtDHMS(passedMs)}`;
-
-    document.getElementById("p3").textContent =
-      `Updated: ${now.toLocaleTimeString()}`;
-
-    setTimeout(tick, 250); // smooth updates
+    setTimeout(tick, 250);
   }
 
   tick();
