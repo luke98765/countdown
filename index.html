@@ -3,40 +3,68 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SEGL Countdown :(</title>
+  <title>SEGL Countdown</title>
   <style>
     :root{
-      --bg:#ffffff;
+      --bgTop:#ffffff;
+      --bgBottom:#f8fafc;  /* faint tint */
       --text:#111111;
       --muted:#6b7280;
       --track:#e5e7eb;
-      --accent:#2563eb; /* clean blue */
+      --accent:#2563eb;    /* clean blue */
+      --card:#ffffff;
+      --shadow:rgba(0,0,0,.06);
+      --border:rgba(17,17,17,.08);
     }
     *{box-sizing:border-box}
     html,body{height:100%;margin:0}
     body{
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: var(--bg);
+      background: linear-gradient(180deg, var(--bgTop) 0%, var(--bgBottom) 100%);
       color: var(--text);
       display:grid;
       place-items:center;
       padding:24px;
     }
     .wrap{
-      width:min(720px, 95vw);
+      width:min(760px, 95vw);
       text-align:center;
+      background: var(--card);
+      padding: 38px 28px;
+      border-radius: 22px;
+      box-shadow: 0 10px 40px var(--shadow);
+      border: 1px solid var(--border);
     }
     h1{
-      margin:0 0 10px 0;
+      margin:0 0 6px 0;
       font-size:clamp(22px, 3vw, 28px);
       letter-spacing:-0.02em;
       font-weight:700;
     }
+    .dot{
+      display:inline-block;
+      width:8px;
+      height:8px;
+      background: var(--accent);
+      border-radius:50%;
+      margin-left:8px;
+      transform: translateY(-2px);
+    }
+    h1::after{
+      content:"";
+      display:block;
+      width:64px;
+      height:2px;
+      background: var(--accent);
+      margin:12px auto 0;
+      border-radius:2px;
+      opacity:.9;
+    }
     .countdown{
-      margin:0 0 18px 0;
+      margin:18px 0 14px 0;
       font-size:clamp(24px, 4.2vw, 44px);
       letter-spacing:-0.03em;
-      font-weight:700;
+      font-weight:750;
       color:var(--accent);
     }
     .sub{
@@ -48,13 +76,13 @@
       width:min(520px, 85vw);
       height:auto;
       display:block;
-      margin: 0 auto;
+      margin: 8px auto 0;
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>SEGL Countdown :(</h1>
+    <h1>SEGL Countdown <span class="dot"></span></h1>
     <div class="countdown" id="timeleft">—</div>
     <div class="sub" id="daterange">—</div>
     <canvas id="ring" width="900" height="900"></canvas>
@@ -95,33 +123,46 @@
     const startAngle = -Math.PI/2;
     const endAngle = startAngle + frac * Math.PI * 2;
 
+    const track = getComputedStyle(document.documentElement).getPropertyValue("--track").trim();
+    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+    const text = getComputedStyle(document.documentElement).getPropertyValue("--text").trim();
+    const muted = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim();
+
     ctx.clearRect(0,0,w,h);
 
     // track
+    ctx.shadowBlur = 0;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI*2);
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--track").trim();
+    ctx.strokeStyle = track;
     ctx.lineWidth = line;
     ctx.lineCap = "round";
     ctx.stroke();
 
-    // progress
+    // progress with soft glow
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = 18;
+
     ctx.beginPath();
     ctx.arc(cx, cy, r, startAngle, endAngle);
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+    ctx.strokeStyle = accent;
     ctx.lineWidth = line;
     ctx.lineCap = "round";
     ctx.stroke();
+
+    // reset shadow so text stays crisp
+    ctx.shadowBlur = 0;
 
     // center percent
     const pct = Math.round(frac * 100);
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+    ctx.fillStyle = accent;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = "700 96px system-ui";
+    ctx.font = "750 96px system-ui";
     ctx.fillText(`${pct}%`, cx, cy);
+
     ctx.font = "500 26px system-ui";
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim();
+    ctx.fillStyle = muted;
     ctx.fillText("complete", cx, cy + 70);
   }
 
@@ -131,8 +172,10 @@
     const passed = now - START;
     const frac = clamp(passed / total, 0, 1);
 
-    const remainingMs = END - now;
-    document.getElementById("timeleft").textContent = fmtDHMS(remainingMs);
+    // Only live countdown: time left
+    document.getElementById("timeleft").textContent = fmtDHMS(END - now);
+
+    // Static range text (not a countdown)
     document.getElementById("daterange").textContent =
       `${fmtDate(START)} → ${fmtDate(END)}`;
 
