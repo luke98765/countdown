@@ -4,43 +4,40 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SEGL Countdown</title>
+
   <style>
     :root{
-      --bgTop:#ffffff;
-      --bgBottom:#f8fafc;  /* faint tint */
+      --bg:#f3f4f6;        /* soft neutral background */
       --text:#111111;
       --muted:#6b7280;
       --track:#e5e7eb;
-      --accent:#2563eb;    /* clean blue */
-      --card:#ffffff;
-      --shadow:rgba(0,0,0,.06);
-      --border:rgba(17,17,17,.08);
+      --accent:#2563eb;    /* clean blue accent */
     }
+
     *{box-sizing:border-box}
     html,body{height:100%;margin:0}
+
     body{
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: linear-gradient(180deg, var(--bgTop) 0%, var(--bgBottom) 100%);
+      background: var(--bg);
       color: var(--text);
       display:grid;
       place-items:center;
       padding:24px;
     }
+
     .wrap{
       width:min(760px, 95vw);
       text-align:center;
-      background: var(--card);
-      padding: 38px 28px;
-      border-radius: 22px;
-      box-shadow: 0 10px 40px var(--shadow);
-      border: 1px solid var(--border);
     }
+
     h1{
       margin:0 0 6px 0;
       font-size:clamp(22px, 3vw, 28px);
       letter-spacing:-0.02em;
       font-weight:700;
     }
+
     .dot{
       display:inline-block;
       width:8px;
@@ -50,6 +47,7 @@
       margin-left:8px;
       transform: translateY(-2px);
     }
+
     h1::after{
       content:"";
       display:block;
@@ -60,18 +58,21 @@
       border-radius:2px;
       opacity:.9;
     }
+
     .countdown{
-      margin:18px 0 14px 0;
-      font-size:clamp(24px, 4.2vw, 44px);
+      margin:22px 0 14px 0;
+      font-size:clamp(26px, 4.5vw, 46px);
       letter-spacing:-0.03em;
       font-weight:750;
       color:var(--accent);
     }
+
     .sub{
-      margin:0 0 18px 0;
+      margin:0 0 20px 0;
       color:var(--muted);
       font-size:clamp(13px, 1.8vw, 15px);
     }
+
     canvas{
       width:min(520px, 85vw);
       height:auto;
@@ -80,6 +81,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <h1>SEGL Countdown <span class="dot"></span></h1>
@@ -99,7 +101,13 @@
   function pad(n){ return String(n).padStart(2,"0"); }
 
   function fmtDate(d){
-    return d.toLocaleString(undefined, { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" });
+    return d.toLocaleString(undefined, { 
+      month:"short", 
+      day:"numeric", 
+      year:"numeric", 
+      hour:"numeric", 
+      minute:"2-digit" 
+    });
   }
 
   function fmtDHMS(ms){
@@ -125,12 +133,11 @@
 
     const track = getComputedStyle(document.documentElement).getPropertyValue("--track").trim();
     const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
-    const text = getComputedStyle(document.documentElement).getPropertyValue("--text").trim();
     const muted = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim();
 
     ctx.clearRect(0,0,w,h);
 
-    // track
+    // Track circle
     ctx.shadowBlur = 0;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI*2);
@@ -139,9 +146,9 @@
     ctx.lineCap = "round";
     ctx.stroke();
 
-    // progress with soft glow
+    // Progress with subtle glow
     ctx.shadowColor = accent;
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = 16;
 
     ctx.beginPath();
     ctx.arc(cx, cy, r, startAngle, endAngle);
@@ -150,10 +157,9 @@
     ctx.lineCap = "round";
     ctx.stroke();
 
-    // reset shadow so text stays crisp
     ctx.shadowBlur = 0;
 
-    // center percent
+    // Center percent
     const pct = Math.round(frac * 100);
     ctx.fillStyle = accent;
     ctx.textAlign = "center";
@@ -172,10 +178,10 @@
     const passed = now - START;
     const frac = clamp(passed / total, 0, 1);
 
-    // Only live countdown: time left
+    // Only live countdown
     document.getElementById("timeleft").textContent = fmtDHMS(END - now);
 
-    // Static range text (not a countdown)
+    // Static range text
     document.getElementById("daterange").textContent =
       `${fmtDate(START)} → ${fmtDate(END)}`;
 
@@ -186,5 +192,6 @@
 
   tick();
 </script>
+
 </body>
 </html>
