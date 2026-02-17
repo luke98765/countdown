@@ -8,9 +8,9 @@
     :root{
       --bg:#ffffff;
       --text:#111111;
-      --muted:#6b7280;     /* gray */
-      --track:#e5e7eb;     /* light gray */
-      --ring:#111111;      /* black */
+      --muted:#6b7280;
+      --track:#e5e7eb;
+      --accent:#2563eb; /* clean blue */
     }
     *{box-sizing:border-box}
     html,body{height:100%;margin:0}
@@ -37,13 +37,19 @@
       font-size:clamp(24px, 4.2vw, 44px);
       letter-spacing:-0.03em;
       font-weight:700;
+      color:var(--accent);
     }
     .sub{
       margin:0 0 18px 0;
       color:var(--muted);
       font-size:clamp(13px, 1.8vw, 15px);
     }
-    canvas{width:min(520px, 85vw); height:auto; display:block; margin: 0 auto;}
+    canvas{
+      width:min(520px, 85vw);
+      height:auto;
+      display:block;
+      margin: 0 auto;
+    }
   </style>
 </head>
 <body>
@@ -55,7 +61,6 @@
   </div>
 
 <script>
-  // ✅ EDIT THESE IF YOU NEED
   const START = new Date("2026-01-24T12:00:00-05:00");
   const END   = new Date("2026-05-23T12:00:00-04:00");
 
@@ -86,7 +91,7 @@
     const cx = w/2, cy = h/2;
 
     const r = Math.min(w,h) * 0.36;
-    const line = r * 0.22; // thickness
+    const line = r * 0.22;
     const startAngle = -Math.PI/2;
     const endAngle = startAngle + frac * Math.PI * 2;
 
@@ -103,14 +108,14 @@
     // progress
     ctx.beginPath();
     ctx.arc(cx, cy, r, startAngle, endAngle);
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--ring").trim();
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
     ctx.lineWidth = line;
     ctx.lineCap = "round";
     ctx.stroke();
 
-    // center percent (minimal)
+    // center percent
     const pct = Math.round(frac * 100);
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--text").trim();
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = "700 96px system-ui";
@@ -126,11 +131,8 @@
     const passed = now - START;
     const frac = clamp(passed / total, 0, 1);
 
-    // Only running countdown: time left
     const remainingMs = END - now;
     document.getElementById("timeleft").textContent = fmtDHMS(remainingMs);
-
-    // small date range (not a countdown)
     document.getElementById("daterange").textContent =
       `${fmtDate(START)} → ${fmtDate(END)}`;
 
