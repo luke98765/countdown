@@ -3,97 +3,198 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Time Passed</title>
+  <title>Time Progress</title>
   <style>
-    html, body { height: 100%; margin: 0; }
-    body { display: grid; place-items: center; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    .wrap { width: min(92vw, 900px); text-align: center; }
-    canvas { width: 100%; height: auto; }
-    .label { margin-top: 18px; font-size: clamp(18px, 3vw, 28px); }
-    .small { opacity: .7; margin-top: 8px; font-size: clamp(12px, 1.6vw, 16px); }
+    :root{
+      --bg1:#0b0f17;
+      --bg2:#0f172a;
+      --card:rgba(255,255,255,.06);
+      --stroke:rgba(255,255,255,.10);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.65);
+      --accent:#7c3aed; /* purple */
+      --accent2:#22c55e; /* green */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background: radial-gradient(1200px 700px at 20% 20%, #1f1147 0%, transparent 60%),
+                  radial-gradient(1200px 700px at 80% 30%, #0b3b2a 0%, transparent 55%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+    .card{
+      width:min(980px, 96vw);
+      border:1px solid var(--stroke);
+      background:var(--card);
+      backdrop-filter: blur(10px);
+      border-radius:24px;
+      padding:26px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.45);
+      display:grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap:22px;
+      align-items:center;
+    }
+    @media (max-width: 820px){
+      .card{grid-template-columns:1fr}
+    }
+    .title{
+      font-weight:700;
+      letter-spacing:-0.02em;
+      font-size:clamp(18px, 2.2vw, 24px);
+      margin:0 0 10px 0;
+      color:var(--text);
+    }
+    .big{
+      font-size:clamp(34px, 4vw, 52px);
+      font-weight:800;
+      letter-spacing:-0.03em;
+      margin:0;
+      line-height:1.05;
+    }
+    .sub{
+      margin:10px 0 0;
+      color:var(--muted);
+      font-size:clamp(14px, 1.6vw, 16px);
+    }
+    .pillrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+    .pill{
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.05);
+      padding:10px 12px;
+      border-radius:999px;
+      font-size:14px;
+      color:var(--muted);
+    }
+    canvas{width:100%;height:auto;display:block}
+    .right{
+      display:grid;
+      place-items:center;
+      padding:10px;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <canvas id="pie" width="900" height="900"></canvas>
-    <div class="label" id="pct"></div>
-    <div class="small" id="detail"></div>
+  <div class="card">
+    <div>
+      <p class="title">Progress</p>
+      <p class="big" id="headline">—</p>
+      <p class="sub" id="range">—</p>
+
+      <div class="pillrow">
+        <div class="pill" id="p1">—</div>
+        <div class="pill" id="p2">—</div>
+        <div class="pill" id="p3">—</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <canvas id="ring" width="900" height="900"></canvas>
+    </div>
   </div>
 
 <script>
-  // ✅ EDIT THESE TWO LINES
-  const START = new Date("2026-01-24T12:00:00-05:00"); // Jan 24, 2026 at noon (NY time)
-  const END   = new Date("2026-05-23T12:00:00-04:00"); // May 23, 2026 at noon (NY time)
+  // ✅ EDIT THESE (use your local timezone offset in the string)
+  const START = new Date("2026-01-24T12:00:00-05:00");
+  const END   = new Date("2026-05-23T12:00:00-04:00");
 
-  const canvas = document.getElementById("pie");
+  const canvas = document.getElementById("ring");
   const ctx = canvas.getContext("2d");
 
-  function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
+  function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
 
-  function drawPie(passedFrac){
-    passedFrac = clamp(passedFrac, 0, 1);
-    const remainingFrac = 1 - passedFrac;
+  function fmtDate(d){
+    return d.toLocaleString(undefined, { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" });
+  }
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function fmtDHMS(ms){
+    ms = Math.max(0, ms);
+    const s = Math.floor(ms/1000);
+    const days = Math.floor(s/86400);
+    const hrs  = Math.floor((s%86400)/3600);
+    const mins = Math.floor((s%3600)/60);
+    const secs = s%60;
+    return `${days}d ${pad(hrs)}h ${pad(mins)}m ${pad(secs)}s`;
+  }
+
+  function drawRing(frac){
+    frac = clamp(frac, 0, 1);
 
     const w = canvas.width, h = canvas.height;
     const cx = w/2, cy = h/2;
-    const r = Math.min(w,h)*0.42;
+
+    const rOuter = Math.min(w,h) * 0.40;
+    const rInner = rOuter * 0.72;
+    const startAngle = -Math.PI/2;
 
     ctx.clearRect(0,0,w,h);
 
-    // background circle (remaining)
+    // background ring
     ctx.beginPath();
-    ctx.moveTo(cx,cy);
-    ctx.arc(cx,cy,r,0,Math.PI*2);
-    ctx.closePath();
-    ctx.fillStyle = "#e8e8e8";
-    ctx.fill();
+    ctx.arc(cx, cy, (rOuter+rInner)/2, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(255,255,255,.12)";
+    ctx.lineWidth = (rOuter-rInner);
+    ctx.lineCap = "round";
+    ctx.stroke();
 
-    // passed slice
-    const startAngle = -Math.PI/2;
-    const endAngle = startAngle + passedFrac * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(cx,cy);
-    ctx.arc(cx,cy,r,startAngle,endAngle);
-    ctx.closePath();
-    ctx.fillStyle = "#111";
-    ctx.fill();
+    // progress ring with gradient
+    const endAngle = startAngle + frac * Math.PI * 2;
+    const grad = ctx.createLinearGradient(cx - rOuter, cy - rOuter, cx + rOuter, cy + rOuter);
+    grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
+    grad.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue("--accent2").trim());
 
-    // donut hole
     ctx.beginPath();
-    ctx.arc(cx,cy,r*0.62,0,Math.PI*2);
-    ctx.fillStyle = "#fff";
-    ctx.fill();
+    ctx.arc(cx, cy, (rOuter+rInner)/2, startAngle, endAngle);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = (rOuter-rInner);
+    ctx.lineCap = "round";
+    ctx.stroke();
 
     // center text
-    ctx.fillStyle = "#111";
+    const pct = Math.round(frac*100);
+    ctx.fillStyle = "rgba(255,255,255,.92)";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = "700 88px system-ui";
-    ctx.fillText(Math.round(passedFrac*100) + "%", cx, cy - 10);
-    ctx.font = "400 34px system-ui";
-    ctx.fillText("passed", cx, cy + 62);
+    ctx.font = "800 110px system-ui";
+    ctx.fillText(pct + "%", cx, cy - 10);
+    ctx.font = "500 34px system-ui";
+    ctx.fillStyle = "rgba(255,255,255,.65)";
+    ctx.fillText("complete", cx, cy + 70);
   }
 
   function tick(){
     const now = new Date();
     const total = END - START;
     const passed = now - START;
-    const frac = passed / total;
+    const fracRaw = passed / total;
+    const frac = clamp(fracRaw, 0, 1);
 
-    const pct = clamp(frac, 0, 1);
-    drawPie(pct);
+    drawRing(frac);
 
     const remainingMs = END - now;
-    const remainingDays = Math.max(0, remainingMs) / (1000*60*60*24);
+    const passedMs = now - START;
 
-    document.getElementById("pct").textContent =
-      `${(pct*100).toFixed(2)}% passed • ${((1-pct)*100).toFixed(2)}% remaining`;
+    document.getElementById("headline").textContent =
+      `${(frac*100).toFixed(2)}% complete`;
 
-    document.getElementById("detail").textContent =
-      `Now: ${now.toLocaleString()} • ~${remainingDays.toFixed(2)} days left`;
+    document.getElementById("range").textContent =
+      `${fmtDate(START)} → ${fmtDate(END)}`;
 
-    // update every second
-    setTimeout(tick, 1000);
+    document.getElementById("p1").textContent =
+      `Time left: ${fmtDHMS(remainingMs)}`;
+
+    document.getElementById("p2").textContent =
+      `Time passed: ${fmtDHMS(passedMs)}`;
+
+    document.getElementById("p3").textContent =
+      `Updated: ${now.toLocaleTimeString()}`;
+
+    setTimeout(tick, 250); // smooth updates
   }
 
   tick();
