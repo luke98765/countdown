@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Time Passed</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { display: grid; place-items: center; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    .wrap { width: min(92vw, 900px); text-align: center; }
+    canvas { width: 100%; height: auto; }
+    .label { margin-top: 18px; font-size: clamp(18px, 3vw, 28px); }
+    .small { opacity: .7; margin-top: 8px; font-size: clamp(12px, 1.6vw, 16px); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="pie" width="900" height="900"></canvas>
+    <div class="label" id="pct"></div>
+    <div class="small" id="detail"></div>
+  </div>
+
+<script>
+  // ✅ EDIT THESE TWO LINES
+  const START = new Date("2026-01-24T12:00:00-05:00"); // Jan 24, 2026 at noon (NY time)
+  const END   = new Date("2026-05-23T12:00:00-04:00"); // May 23, 2026 at noon (NY time)
+
+  const canvas = document.getElementById("pie");
+  const ctx = canvas.getContext("2d");
+
+  function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
+
+  function drawPie(passedFrac){
+    passedFrac = clamp(passedFrac, 0, 1);
+    const remainingFrac = 1 - passedFrac;
+
+    const w = canvas.width, h = canvas.height;
+    const cx = w/2, cy = h/2;
+    const r = Math.min(w,h)*0.42;
+
+    ctx.clearRect(0,0,w,h);
+
+    // background circle (remaining)
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.closePath();
+    ctx.fillStyle = "#e8e8e8";
+    ctx.fill();
+
+    // passed slice
+    const startAngle = -Math.PI/2;
+    const endAngle = startAngle + passedFrac * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,startAngle,endAngle);
+    ctx.closePath();
+    ctx.fillStyle = "#111";
+    ctx.fill();
+
+    // donut hole
+    ctx.beginPath();
+    ctx.arc(cx,cy,r*0.62,0,Math.PI*2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+
+    // center text
+    ctx.fillStyle = "#111";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "700 88px system-ui";
+    ctx.fillText(Math.round(passedFrac*100) + "%", cx, cy - 10);
+    ctx.font = "400 34px system-ui";
+    ctx.fillText("passed", cx, cy + 62);
+  }
+
+  function tick(){
+    const now = new Date();
+    const total = END - START;
+    const passed = now - START;
+    const frac = passed / total;
+
+    const pct = clamp(frac, 0, 1);
+    drawPie(pct);
+
+    const remainingMs = END - now;
+    const remainingDays = Math.max(0, remainingMs) / (1000*60*60*24);
+
+    document.getElementById("pct").textContent =
+      `${(pct*100).toFixed(2)}% passed • ${((1-pct)*100).toFixed(2)}% remaining`;
+
+    document.getElementById("detail").textContent =
+      `Now: ${now.toLocaleString()} • ~${remainingDays.toFixed(2)} days left`;
+
+    // update every second
+    setTimeout(tick, 1000);
+  }
+
+  tick();
+</script>
+</body>
+</html>
