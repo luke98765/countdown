@@ -7,15 +7,14 @@
 
   <style>
     :root{
-      --bg:#f3f4f6;        /* soft neutral background */
+      --bg:#f3f4f6;
       --text:#111111;
       --muted:#6b7280;
 
-      /* FIXED TRACK VISIBILITY */
-      --track:#cbd5e1;        /* darker gray */
-      --trackOutline:#94a3b8; /* subtle outer edge */
+      --track:#cbd5e1;
+      --trackOutline:#94a3b8;
 
-      --accent:#2563eb;    /* clean blue accent */
+      --accent:#2563eb;
     }
 
     *{box-sizing:border-box}
@@ -88,7 +87,7 @@
 
 <body>
   <div class="wrap">
-    <h1><h1>SEGL Countdown 💔 <span class="dot"></span></h1>
+    <h1>SEGL Countdown 💔 <span class="dot"></span></h1>
     <div class="countdown" id="timeleft">—</div>
     <div class="sub" id="daterange">—</div>
     <canvas id="ring" width="900" height="900"></canvas>
@@ -135,14 +134,15 @@
     const startAngle = -Math.PI/2;
     const endAngle = startAngle + frac * Math.PI * 2;
 
-    const track = getComputedStyle(document.documentElement).getPropertyValue("--track").trim();
-    const trackOutline = getComputedStyle(document.documentElement).getPropertyValue("--trackOutline").trim();
-    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
-    const muted = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim();
+    const styles = getComputedStyle(document.documentElement);
+    const track = styles.getPropertyValue("--track").trim();
+    const trackOutline = styles.getPropertyValue("--trackOutline").trim();
+    const accent = styles.getPropertyValue("--accent").trim();
+    const muted = styles.getPropertyValue("--muted").trim();
 
     ctx.clearRect(0,0,w,h);
 
-    // Subtle outline ring (adds contrast against background)
+    // Outline ring
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI*2);
     ctx.strokeStyle = trackOutline;
@@ -150,7 +150,7 @@
     ctx.lineCap = "round";
     ctx.stroke();
 
-    // Main track
+    // Track
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI*2);
     ctx.strokeStyle = track;
@@ -158,7 +158,7 @@
     ctx.lineCap = "round";
     ctx.stroke();
 
-    // Progress with soft glow
+    // Progress
     ctx.shadowColor = accent;
     ctx.shadowBlur = 14;
 
@@ -171,8 +171,9 @@
 
     ctx.shadowBlur = 0;
 
-    // Center percent
-    const pct = Math.round(frac * 100);
+    // Center percent (0.01% precision)
+    const pct = (frac * 100).toFixed(2);
+
     ctx.fillStyle = accent;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -196,7 +197,7 @@
 
     drawRing(frac);
 
-    setTimeout(tick, 250);
+    setTimeout(tick, 50); // smoother .01% updates
   }
 
   tick();
