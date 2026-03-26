@@ -5,202 +5,322 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SEGL Countdown</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
   <style>
-    :root{
-      --bg:#f3f4f6;
-      --text:#111111;
-      --muted:#6b7280;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
 
-      --track:#cbd5e1;
-      --trackOutline:#94a3b8;
-
-      --accent:#2563eb;
+    body {
+      font-family: 'DM Mono', monospace;
+      color: #f1f5f9;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 32px 16px;
+      overflow-x: hidden;
+      transition: background 90s ease;
     }
 
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0}
-
-    body{
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: var(--bg);
-      color: var(--text);
-      display:grid;
-      place-items:center;
-      padding:24px;
+    #particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
     }
 
-    .wrap{
-      width:min(760px, 95vw);
-      text-align:center;
+    .wrap {
+      position: relative;
+      z-index: 1;
+      width: min(780px, 95vw);
+      text-align: center;
     }
 
-    h1{
-      margin:0 0 6px 0;
-      font-size:clamp(22px, 3vw, 28px);
-      letter-spacing:-0.02em;
-      font-weight:700;
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(22px, 3.5vw, 36px);
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: #f1f5f9;
+      margin-bottom: 8px;
     }
 
-    .dot{
-      display:inline-block;
-      width:8px;
-      height:8px;
-      background: var(--accent);
-      border-radius:50%;
-      margin-left:8px;
-      transform: translateY(-2px);
+    h1 em {
+      font-style: italic;
+      background: linear-gradient(90deg, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    h1::after{
-      content:"";
-      display:block;
-      width:64px;
-      height:2px;
-      background: var(--accent);
-      margin:12px auto 0;
-      border-radius:2px;
-      opacity:.9;
+    .underline {
+      width: 60px;
+      height: 1.5px;
+      background: linear-gradient(90deg, #818cf8, #c084fc);
+      margin: 10px auto 28px;
+      border-radius: 2px;
     }
 
-    .countdown{
-      margin:22px 0 14px 0;
-      font-size:clamp(26px, 4.5vw, 46px);
-      letter-spacing:-0.03em;
-      font-weight:750;
-      color:var(--accent);
+    .countdown {
+      font-size: clamp(26px, 4.5vw, 46px);
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      color: #818cf8;
+      margin-bottom: 10px;
     }
 
-    .sub{
-      margin:0 0 20px 0;
-      color:var(--muted);
-      font-size:clamp(13px, 1.8vw, 15px);
+    .sub {
+      color: #94a3b8;
+      font-size: clamp(11px, 1.5vw, 13px);
+      letter-spacing: 0.04em;
+      margin-bottom: 24px;
     }
 
-    canvas{
-      width:min(520px, 85vw);
-      height:auto;
-      display:block;
-      margin: 8px auto 0;
+    canvas#ring {
+      width: min(500px, 85vw);
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    @keyframes pulseGlow {
+      0%   { filter: drop-shadow(0 0 0px rgba(129,140,248,0)); }
+      40%  { filter: drop-shadow(0 0 28px rgba(129,140,248,0.6)); }
+      100% { filter: drop-shadow(0 0 0px rgba(129,140,248,0)); }
     }
   </style>
 </head>
 
 <body>
+  <canvas id="particles"></canvas>
+
   <div class="wrap">
-    <h1>SEGL Countdown 💔 <span class="dot"></span></h1>
+    <h1>SEGL Countdown <em>💔</em></h1>
+    <div class="underline"></div>
     <div class="countdown" id="timeleft">—</div>
     <div class="sub" id="daterange">—</div>
     <canvas id="ring" width="900" height="900"></canvas>
   </div>
 
 <script>
-  const START = new Date("2026-01-24T12:00:00-05:00");
-  const END   = new Date("2026-05-23T12:00:00-04:00");
+const START = new Date("2026-01-24T12:00:00-05:00");
+const END   = new Date("2026-05-23T12:00:00-04:00");
 
-  const canvas = document.getElementById("ring");
-  const ctx = canvas.getContext("2d");
+/* ── Hourly gradient palette ─────────────────────────────────────────
+   24 entries, one per hour. Each is [bgHue, accentHue].
+   CSS transition:90s means the body background eases slowly
+   between whatever two values are set, so hour boundaries
+   feel like a gentle wash of color rather than a hard cut. */
+const HOUR_PALETTES = [
+  [220, 260], // 0  midnight    deep navy / violet
+  [215, 255], // 1
+  [210, 250], // 2
+  [205, 245], // 3  pre-dawn    dark indigo
+  [200, 240], // 4
+  [195, 230], // 5
+  [185, 220], // 6  sunrise     teal-blue
+  [175, 210], // 7
+  [165, 200], // 8
+  [155, 190], // 9  morning     green-teal
+  [145, 185], // 10
+  [135, 175], // 11
+  [125, 165], // 12 noon        warm green
+  [130, 170], // 13
+  [140, 180], // 14 afternoon   shifting back
+  [155, 195], // 15
+  [170, 210], // 16
+  [185, 225], // 17 golden hr   amber-purple
+  [200, 240], // 18 dusk
+  [210, 250], // 19
+  [215, 255], // 20 evening     back to indigo
+  [218, 258], // 21
+  [220, 260], // 22
+  [220, 260], // 23
+];
 
-  function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
-  function pad(n){ return String(n).padStart(2,"0"); }
+function lerp(a, b, t) { return a + (b - a) * t; }
 
-  function fmtDate(d){
-    return d.toLocaleString(undefined, { 
-      month:"short", 
-      day:"numeric", 
-      year:"numeric", 
-      hour:"numeric", 
-      minute:"2-digit" 
-    });
+function updateBackground() {
+  const now        = new Date();
+  const hour       = now.getHours();
+  const minuteFrac = now.getMinutes() / 60;
+
+  const [h1bg, h1ac] = HOUR_PALETTES[hour];
+  const [h2bg, h2ac] = HOUR_PALETTES[(hour + 1) % 24];
+
+  const bgHue = Math.round(lerp(h1bg, h2bg, minuteFrac));
+  const acHue = Math.round(lerp(h1ac, h2ac, minuteFrac));
+
+  document.body.style.background =
+    `linear-gradient(135deg,
+       hsl(${bgHue}, 45%, 7%)      0%,
+       hsl(${acHue}, 50%, 11%)    60%,
+       hsl(${bgHue + 20}, 40%, 9%) 100%)`;
+}
+
+/* ── Particles ───────────────────────────────────────────────────── */
+const pcanvas = document.getElementById("particles");
+const pctx    = pcanvas.getContext("2d");
+
+function resizePcanvas() {
+  pcanvas.width  = window.innerWidth;
+  pcanvas.height = window.innerHeight;
+}
+resizePcanvas();
+window.addEventListener("resize", resizePcanvas);
+
+function spawnParticle() {
+  return {
+    x:       Math.random() * pcanvas.width,
+    y:       pcanvas.height + 10,
+    r:       Math.random() * 1.8 + 0.4,
+    speed:   Math.random() * 0.35 + 0.08,
+    drift:   (Math.random() - 0.5) * 0.25,
+    opacity: Math.random() * 0.45 + 0.08,
+    hue:     Math.random() < 0.5 ? 240 : 280,
+  };
+}
+
+const particles = [];
+for (let i = 0; i < 65; i++) {
+  const p = spawnParticle();
+  p.y = Math.random() * pcanvas.height;
+  particles.push(p);
+}
+
+function animParticles() {
+  pctx.clearRect(0, 0, pcanvas.width, pcanvas.height);
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    p.y -= p.speed;
+    p.x += p.drift;
+    if (p.y < -10) particles[i] = spawnParticle();
+    pctx.beginPath();
+    pctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    pctx.fillStyle = `hsla(${p.hue}, 80%, 75%, ${p.opacity})`;
+    pctx.fill();
+  }
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+
+/* ── Ring ────────────────────────────────────────────────────────── */
+const ringCanvas = document.getElementById("ring");
+const rctx       = ringCanvas.getContext("2d");
+
+function drawRing(frac) {
+  frac = Math.max(0, Math.min(1, frac));
+  const w = ringCanvas.width, h = ringCanvas.height;
+  const cx = w / 2, cy = h / 2;
+  const r  = Math.min(w, h) * 0.36;
+  const lw = r * 0.22;
+  const startAngle = -Math.PI / 2;
+  const endAngle   = startAngle + frac * Math.PI * 2;
+
+  rctx.clearRect(0, 0, w, h);
+
+  rctx.beginPath();
+  rctx.arc(cx, cy, r, 0, Math.PI * 2);
+  rctx.strokeStyle = "rgba(255,255,255,0.04)";
+  rctx.lineWidth   = lw + 6;
+  rctx.lineCap     = "round";
+  rctx.stroke();
+
+  rctx.beginPath();
+  rctx.arc(cx, cy, r, 0, Math.PI * 2);
+  rctx.strokeStyle = "rgba(255,255,255,0.08)";
+  rctx.lineWidth   = lw;
+  rctx.lineCap     = "round";
+  rctx.stroke();
+
+  const grad = rctx.createLinearGradient(cx - r, cy, cx + r, cy);
+  grad.addColorStop(0, "#818cf8");
+  grad.addColorStop(1, "#c084fc");
+
+  rctx.shadowColor = "#818cf8";
+  rctx.shadowBlur  = 18;
+  rctx.beginPath();
+  rctx.arc(cx, cy, r, startAngle, endAngle);
+  rctx.strokeStyle = grad;
+  rctx.lineWidth   = lw;
+  rctx.lineCap     = "round";
+  rctx.stroke();
+  rctx.shadowBlur  = 0;
+
+  const pct = (frac * 100).toFixed(2);
+  rctx.fillStyle    = "#f1f5f9";
+  rctx.textAlign    = "center";
+  rctx.textBaseline = "middle";
+  rctx.font         = "500 90px 'DM Mono', monospace";
+  rctx.fillText(`${pct}%`, cx, cy);
+
+  rctx.font      = "400 24px 'DM Mono', monospace";
+  rctx.fillStyle = "#94a3b8";
+  rctx.fillText("complete", cx, cy + 68);
+}
+
+/* ── Helpers ─────────────────────────────────────────────────────── */
+function pad(n) { return String(n).padStart(2, "0"); }
+
+function fmtDHMS(ms) {
+  ms = Math.max(0, ms);
+  const s    = Math.floor(ms / 1000);
+  const days = Math.floor(s / 86400);
+  const hrs  = Math.floor((s % 86400) / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  return `${days}d ${pad(hrs)}h ${pad(mins)}m ${pad(secs)}s left`;
+}
+
+function fmtDate(d) {
+  return d.toLocaleString(undefined, {
+    month:"short", day:"numeric", year:"numeric",
+    hour:"numeric", minute:"2-digit"
+  });
+}
+
+/* ── Ring pulse ──────────────────────────────────────────────────── */
+let lastSec = -1;
+
+function triggerPulse() {
+  ringCanvas.style.animation = "none";
+  void ringCanvas.offsetWidth;
+  ringCanvas.style.animation = "pulseGlow 0.7s ease-out forwards";
+}
+
+/* ── Main tick ───────────────────────────────────────────────────── */
+let lastHour = -1;
+
+function tick() {
+  const now   = new Date();
+  const total = END - START;
+  const frac  = Math.max(0, Math.min(1, (now - START) / total));
+
+  document.getElementById("timeleft").textContent  = fmtDHMS(END - now);
+  document.getElementById("daterange").textContent =
+    `${fmtDate(START)} → ${fmtDate(END)}`;
+
+  drawRing(frac);
+
+  const sec = now.getSeconds();
+  if (sec !== lastSec) {
+    triggerPulse();
+    lastSec = sec;
   }
 
-  function fmtDHMS(ms){
-    ms = Math.max(0, ms);
-    const s = Math.floor(ms/1000);
-    const days = Math.floor(s/86400);
-    const hrs  = Math.floor((s%86400)/3600);
-    const mins = Math.floor((s%3600)/60);
-    const secs = s%60;
-    return `${days}d ${pad(hrs)}h ${pad(mins)}m ${pad(secs)}s left`;
+  const hr = now.getHours();
+  if (hr !== lastHour) {
+    updateBackground();
+    lastHour = hr;
   }
 
-  function drawRing(frac){
-    frac = clamp(frac, 0, 1);
+  setTimeout(tick, 250);
+}
 
-    const w = canvas.width, h = canvas.height;
-    const cx = w/2, cy = h/2;
-
-    const r = Math.min(w,h) * 0.36;
-    const line = r * 0.22;
-    const startAngle = -Math.PI/2;
-    const endAngle = startAngle + frac * Math.PI * 2;
-
-    const styles = getComputedStyle(document.documentElement);
-    const track = styles.getPropertyValue("--track").trim();
-    const trackOutline = styles.getPropertyValue("--trackOutline").trim();
-    const accent = styles.getPropertyValue("--accent").trim();
-    const muted = styles.getPropertyValue("--muted").trim();
-
-    ctx.clearRect(0,0,w,h);
-
-    // Outline ring
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI*2);
-    ctx.strokeStyle = trackOutline;
-    ctx.lineWidth = line + 6;
-    ctx.lineCap = "round";
-    ctx.stroke();
-
-    // Track
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI*2);
-    ctx.strokeStyle = track;
-    ctx.lineWidth = line;
-    ctx.lineCap = "round";
-    ctx.stroke();
-
-    // Progress
-    ctx.shadowColor = accent;
-    ctx.shadowBlur = 14;
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, startAngle, endAngle);
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = line;
-    ctx.lineCap = "round";
-    ctx.stroke();
-
-    ctx.shadowBlur = 0;
-
-    // Center percent (0.01% precision)
-    const pct = (frac * 100).toFixed(2);
-
-    ctx.fillStyle = accent;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = "750 96px system-ui";
-    ctx.fillText(`${pct}%`, cx, cy);
-
-    ctx.font = "500 26px system-ui";
-    ctx.fillStyle = muted;
-    ctx.fillText("complete", cx, cy + 70);
-  }
-
-  function tick(){
-    const now = new Date();
-    const total = END - START;
-    const passed = now - START;
-    const frac = clamp(passed / total, 0, 1);
-
-    document.getElementById("timeleft").textContent = fmtDHMS(END - now);
-    document.getElementById("daterange").textContent =
-      `${fmtDate(START)} → ${fmtDate(END)}`;
-
-    drawRing(frac);
-
-    setTimeout(tick, 50); // smoother .01% updates
-  }
-
-  tick();
+updateBackground();
+tick();
 </script>
 
 </body>
