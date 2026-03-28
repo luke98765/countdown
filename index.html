@@ -10,95 +10,61 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
-
     body {
       font-family: 'DM Mono', monospace;
       color: #f1f5f9;
-      display: grid;
-      place-items: center;
       min-height: 100vh;
       padding: 32px 16px;
       transition: background 90s ease;
     }
-
-    #particles {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-    }
-
+    #center { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    #particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
     #dvd-photo {
-      position: fixed;
-      z-index: 2;
-      width: 180px;
-      border-radius: 14px;
-      overflow: hidden;
+      position: fixed; z-index: 2; width: 180px;
+      border-radius: 14px; overflow: hidden;
       box-shadow: 0 0 0 3px rgba(255,255,255,0.18), 0 8px 32px rgba(0,0,0,0.55);
       pointer-events: none;
     }
+    #dvd-photo img { width: 100%; height: auto; display: block; }
 
-    #dvd-photo img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    .wrap {
-      position: relative;
+    /* Player real-sized but invisible, off bottom of screen */
+    #yt-container {
+      position: fixed;
+      left: 0; bottom: -350px;
+      width: 480px; height: 270px;
+      opacity: 0;
+      pointer-events: none;
       z-index: 1;
-      width: min(780px, 95vw);
-      text-align: center;
     }
 
+    #music-btn {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      background: rgba(129,140,248,0.15);
+      border: 1.5px solid rgba(129,140,248,0.5);
+      border-radius: 50%; width: 52px; height: 52px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; outline: none;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    }
+    #music-btn:hover { background: rgba(129,140,248,0.28); border-color: rgba(129,140,248,0.85); transform: scale(1.08); }
+    #music-btn:active { transform: scale(0.96); }
+    #music-btn svg { width: 22px; height: 22px; fill: #a5b4fc; pointer-events: none; }
+
+    .wrap { position: relative; z-index: 1; width: min(780px, 95vw); text-align: center; }
     h1 {
       font-family: 'DM Serif Display', serif;
-      font-size: clamp(22px, 3.5vw, 36px);
-      font-weight: 400;
-      letter-spacing: -0.01em;
-      color: #f1f5f9;
-      margin-bottom: 8px;
-      padding-right: 0.2em;
+      font-size: clamp(22px, 3.5vw, 36px); font-weight: 400;
+      letter-spacing: -0.01em; color: #f1f5f9; margin-bottom: 8px; padding-right: 0.2em;
     }
-
     h1 em {
       font-style: italic;
       background: linear-gradient(90deg, #818cf8, #c084fc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-
-    .underline {
-      width: 60px;
-      height: 1.5px;
-      background: linear-gradient(90deg, #818cf8, #c084fc);
-      margin: 10px auto 28px;
-      border-radius: 2px;
-    }
-
-    .countdown {
-      font-size: clamp(26px, 4.5vw, 46px);
-      font-weight: 500;
-      letter-spacing: -0.03em;
-      color: #818cf8;
-      margin-bottom: 10px;
-    }
-
-    .sub {
-      color: #94a3b8;
-      font-size: clamp(11px, 1.5vw, 13px);
-      letter-spacing: 0.04em;
-      margin-bottom: 24px;
-    }
-
-    canvas#ring {
-      width: min(500px, 85vw);
-      height: auto;
-      display: block;
-      margin: 0 auto;
-    }
-
+    .underline { width: 60px; height: 1.5px; background: linear-gradient(90deg,#818cf8,#c084fc); margin: 10px auto 28px; border-radius: 2px; }
+    .countdown { font-size: clamp(26px,4.5vw,46px); font-weight: 500; letter-spacing: -0.03em; color: #818cf8; margin-bottom: 10px; }
+    .sub { color: #94a3b8; font-size: clamp(11px,1.5vw,13px); letter-spacing: 0.04em; margin-bottom: 24px; }
+    canvas#ring { width: min(500px,85vw); height: auto; display: block; margin: 0 auto; }
     @keyframes pulseGlow {
       0%   { filter: drop-shadow(0 0 0px rgba(129,140,248,0)); }
       40%  { filter: drop-shadow(0 0 28px rgba(129,140,248,0.6)); }
@@ -109,13 +75,27 @@
 <body>
   <canvas id="particles"></canvas>
   <div id="dvd-photo"><img id="dvd-img" src="" alt="" /></div>
-  <div class="wrap">
-    <h1>SEGL Countdown <em>&#128148;</em></h1>
-    <div class="underline"></div>
-    <div class="countdown" id="timeleft">&#8212;</div>
-    <div class="sub" id="daterange">&#8212;</div>
-    <canvas id="ring" width="900" height="900"></canvas>
+
+  <div id="yt-container">
+    <div id="yt-player"></div>
   </div>
+
+  <div id="center">
+    <div class="wrap">
+      <h1>SEGL Countdown <em>&#128148;</em></h1>
+      <div class="underline"></div>
+      <div class="countdown" id="timeleft">&#8212;</div>
+      <div class="sub" id="daterange">&#8212;</div>
+      <canvas id="ring" width="900" height="900"></canvas>
+    </div>
+  </div>
+
+  <button id="music-btn" title="Play music" aria-label="Toggle music">
+    <svg id="icon-on" viewBox="0 0 24 24" style="display:none"><path d="M9 3v12.174A3 3 0 1 0 11 18V7h6V3H9z"/></svg>
+    <svg id="icon-off" viewBox="0 0 24 24"><path d="M9 3v12.174A3 3 0 1 0 11 18V7h6V3H9z" opacity=".3"/><path d="M3.293 3.293a1 1 0 0 1 1.414 0l16 16a1 1 0 0 1-1.414 1.414l-16-16a1 1 0 0 1 0-1.414z"/></svg>
+  </button>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
 
 <script>
 const PHOTOS = [
@@ -138,7 +118,6 @@ const PHOTOS = [
 const START = new Date("2026-01-24T12:00:00-05:00");
 const END   = new Date("2026-05-23T12:00:00-04:00");
 
-/* ── Hourly gradient ─────────────────────────────────────────────── */
 const HOUR_PALETTES = [
   [220,260],[215,255],[210,250],[205,245],[200,240],[195,230],[185,220],[175,210],
   [165,200],[155,190],[145,185],[135,175],[125,165],[130,170],[140,180],[155,195],
@@ -146,38 +125,25 @@ const HOUR_PALETTES = [
 ];
 function lerp(a,b,t){return a+(b-a)*t;}
 function updateBackground(){
-  const now=new Date(), hr=now.getHours(), mf=now.getMinutes()/60;
+  const now=new Date(),hr=now.getHours(),mf=now.getMinutes()/60;
   const [h1b,h1a]=HOUR_PALETTES[hr],[h2b,h2a]=HOUR_PALETTES[(hr+1)%24];
-  const bg=Math.round(lerp(h1b,h2b,mf)), ac=Math.round(lerp(h1a,h2a,mf));
-  document.body.style.background=
-    `linear-gradient(135deg,hsl(${bg},45%,7%) 0%,hsl(${ac},50%,11%) 60%,hsl(${bg+20},40%,9%) 100%)`;
+  const bg=Math.round(lerp(h1b,h2b,mf)),ac=Math.round(lerp(h1a,h2a,mf));
+  document.body.style.background=`linear-gradient(135deg,hsl(${bg},45%,7%) 0%,hsl(${ac},50%,11%) 60%,hsl(${bg+20},40%,9%) 100%)`;
 }
 
-/* ── Particles ───────────────────────────────────────────────────── */
 const pcanvas=document.getElementById("particles"),pctx=pcanvas.getContext("2d");
 function resizeP(){pcanvas.width=window.innerWidth;pcanvas.height=window.innerHeight;}
 resizeP();window.addEventListener("resize",resizeP);
-function spawnP(){return{
-  x:Math.random()*pcanvas.width, y:pcanvas.height+10,
-  r:Math.random()*1.8+0.4, speed:Math.random()*0.35+0.08,
-  drift:(Math.random()-0.5)*0.25, opacity:Math.random()*0.45+0.08,
-  hue:Math.random()<0.5?240:280
-};}
+function spawnP(){return{x:Math.random()*pcanvas.width,y:pcanvas.height+10,r:Math.random()*1.8+0.4,speed:Math.random()*0.35+0.08,drift:(Math.random()-0.5)*0.25,opacity:Math.random()*0.45+0.08,hue:Math.random()<0.5?240:280};}
 const pts=[];
 for(let i=0;i<65;i++){const p=spawnP();p.y=Math.random()*pcanvas.height;pts.push(p);}
 function animP(){
   pctx.clearRect(0,0,pcanvas.width,pcanvas.height);
-  for(let i=0;i<pts.length;i++){
-    const p=pts[i];p.y-=p.speed;p.x+=p.drift;
-    if(p.y<-10)pts[i]=spawnP();
-    pctx.beginPath();pctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-    pctx.fillStyle=`hsla(${p.hue},80%,75%,${p.opacity})`;pctx.fill();
-  }
+  for(let i=0;i<pts.length;i++){const p=pts[i];p.y-=p.speed;p.x+=p.drift;if(p.y<-10)pts[i]=spawnP();pctx.beginPath();pctx.arc(p.x,p.y,p.r,0,Math.PI*2);pctx.fillStyle=`hsla(${p.hue},80%,75%,${p.opacity})`;pctx.fill();}
   requestAnimationFrame(animP);
 }
 animP();
 
-/* ── Ring ────────────────────────────────────────────────────────── */
 const rc=document.getElementById("ring"),rctx=rc.getContext("2d");
 function drawRing(frac){
   frac=Math.max(0,Math.min(1,frac));
@@ -186,8 +152,7 @@ function drawRing(frac){
   rctx.clearRect(0,0,w,h);
   rctx.beginPath();rctx.arc(cx,cy,r,0,Math.PI*2);rctx.strokeStyle="rgba(255,255,255,0.04)";rctx.lineWidth=lw+6;rctx.lineCap="round";rctx.stroke();
   rctx.beginPath();rctx.arc(cx,cy,r,0,Math.PI*2);rctx.strokeStyle="rgba(255,255,255,0.08)";rctx.lineWidth=lw;rctx.lineCap="round";rctx.stroke();
-  const g=rctx.createLinearGradient(cx-r,cy,cx+r,cy);
-  g.addColorStop(0,"#818cf8");g.addColorStop(1,"#c084fc");
+  const g=rctx.createLinearGradient(cx-r,cy,cx+r,cy);g.addColorStop(0,"#818cf8");g.addColorStop(1,"#c084fc");
   rctx.shadowColor="#818cf8";rctx.shadowBlur=18;
   rctx.beginPath();rctx.arc(cx,cy,r,sa,ea);rctx.strokeStyle=g;rctx.lineWidth=lw;rctx.lineCap="round";rctx.stroke();
   rctx.shadowBlur=0;
@@ -197,53 +162,102 @@ function drawRing(frac){
   rctx.font="400 24px 'DM Mono',monospace";rctx.fillStyle="#94a3b8";rctx.fillText("complete",cx,cy+68);
 }
 
-/* ── Helpers ─────────────────────────────────────────────────────── */
 function pad(n){return String(n).padStart(2,"0");}
-function fmtDHMS(ms){
-  ms=Math.max(0,ms);const s=Math.floor(ms/1000);
-  return `${Math.floor(s/86400)}d ${pad(Math.floor((s%86400)/3600))}h ${pad(Math.floor((s%3600)/60))}m ${pad(s%60)}s left`;
-}
+function fmtDHMS(ms){ms=Math.max(0,ms);const s=Math.floor(ms/1000);return `${Math.floor(s/86400)}d ${pad(Math.floor((s%86400)/3600))}h ${pad(Math.floor((s%3600)/60))}m ${pad(s%60)}s left`;}
 function fmtDate(d){return d.toLocaleString(undefined,{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});}
 
-/* ── Ring pulse ──────────────────────────────────────────────────── */
 let lastSec=-1;
 function triggerPulse(){rc.style.animation="none";void rc.offsetWidth;rc.style.animation="pulseGlow 0.7s ease-out forwards";}
 
-/* ── DVD bouncing photo ──────────────────────────────────────────── */
-const dvdEl=document.getElementById("dvd-photo");
-const dvdImg=document.getElementById("dvd-img");
+const dvdEl=document.getElementById("dvd-photo"),dvdImg=document.getElementById("dvd-img");
 let photoIdx=0,dvdX=140,dvdY=100,dvdVX=2.3,dvdVY=1.9;
-
 const imgEls=PHOTOS.map(src=>{const i=new Image();i.src=src;return i;});
 function getH(){const img=imgEls[photoIdx];if(!img.naturalWidth)return 135;return Math.round(180*img.naturalHeight/img.naturalWidth);}
-
 dvdImg.src=PHOTOS[0];
-
-function swapPhoto(n){
-  photoIdx=n%PHOTOS.length;
-  dvdImg.src=PHOTOS[photoIdx];
-}
-
+function swapPhoto(n){photoIdx=n%PHOTOS.length;dvdImg.src=PHOTOS[photoIdx];}
 function dvdLoop(){
   const W=180,H=getH(),maxX=window.innerWidth-W,maxY=window.innerHeight-H;
   dvdX+=dvdVX;dvdY+=dvdVY;
-  let bounced=false;
-  if(dvdX<=0){dvdX=0;dvdVX=Math.abs(dvdVX);bounced=true;}
-  else if(dvdX>=maxX){dvdX=maxX;dvdVX=-Math.abs(dvdVX);bounced=true;}
-  if(dvdY<=0){dvdY=0;dvdVY=Math.abs(dvdVY);bounced=true;}
-  else if(dvdY>=maxY){dvdY=maxY;dvdVY=-Math.abs(dvdVY);bounced=true;}
-  if(bounced)swapPhoto(photoIdx+1);
+  let b=false;
+  if(dvdX<=0){dvdX=0;dvdVX=Math.abs(dvdVX);b=true;}else if(dvdX>=maxX){dvdX=maxX;dvdVX=-Math.abs(dvdVX);b=true;}
+  if(dvdY<=0){dvdY=0;dvdVY=Math.abs(dvdVY);b=true;}else if(dvdY>=maxY){dvdY=maxY;dvdVY=-Math.abs(dvdVY);b=true;}
+  if(b)swapPhoto(photoIdx+1);
   dvdEl.style.left=dvdX+"px";dvdEl.style.top=dvdY+"px";
   requestAnimationFrame(dvdLoop);
 }
 dvdLoop();
 
-/* ── Main tick ───────────────────────────────────────────────────── */
+/* YouTube */
+const btn    = document.getElementById("music-btn");
+const iconOn = document.getElementById("icon-on");
+const iconOff= document.getElementById("icon-off");
+let player   = null;
+let ready    = false;
+let musicOn  = false;
+let pendingPlay = false;
+
+function setUI(on){
+  iconOn.style.display  = on ? "block" : "none";
+  iconOff.style.display = on ? "none"  : "block";
+  btn.title = on ? "Pause music" : "Play music";
+}
+
+window.onYouTubeIframeAPIReady = function(){
+  player = new YT.Player("yt-player", {
+    width:  480,
+    height: 270,
+    videoId: "c18WZZa4KIA",
+    playerVars: {
+      autoplay:       0,
+      controls:       0,
+      disablekb:      1,
+      fs:             0,
+      loop:           1,
+      playlist:       "c18WZZa4KIA",
+      playsinline:    1,
+      rel:            0,
+    },
+    events: {
+      onReady: function(e){
+        ready = true;
+        e.target.setVolume(80);
+        if(pendingPlay){
+          e.target.playVideo();
+          musicOn = true;
+          setUI(true);
+          pendingPlay = false;
+        }
+      },
+      onStateChange: function(e){
+        if(e.data === YT.PlayerState.ENDED) player.playVideo();
+      }
+    }
+  });
+};
+
+btn.addEventListener("click", function(){
+  if(!musicOn){
+    if(ready){
+      player.playVideo();
+      musicOn = true;
+      setUI(true);
+    } else {
+      pendingPlay = true;
+      setUI(true);
+    }
+  } else {
+    if(ready) player.pauseVideo();
+    musicOn = false;
+    pendingPlay = false;
+    setUI(false);
+  }
+});
+
 let lastHour=-1;
 function tick(){
   const now=new Date(),total=END-START,frac=Math.max(0,Math.min(1,(now-START)/total));
   document.getElementById("timeleft").textContent=fmtDHMS(END-now);
-  document.getElementById("daterange").textContent=`${fmtDate(START)} → ${fmtDate(END)}`;
+  document.getElementById("daterange").textContent=fmtDate(START)+" → "+fmtDate(END);
   drawRing(frac);
   const sec=now.getSeconds();
   if(sec!==lastSec){triggerPulse();lastSec=sec;}
