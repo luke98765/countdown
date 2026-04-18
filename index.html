@@ -183,7 +183,6 @@
     <canvas id="pong-canvas"></canvas>
     <!-- countdown in the middle -->
     <div id="pong-clock">
-      <div class="pc-time" id="pong-time">—</div>
       <div class="pc-pct" id="pong-pct">—% complete</div>
     </div>
     <!-- score -->
@@ -607,7 +606,6 @@ function tick(){
 
   document.getElementById("timeleft").textContent=timeStr;
   document.getElementById("daterange").textContent=fmtDate(START)+" → "+fmtDate(END);
-  pongTime.textContent=timeStr;
   pongPct.textContent=pctStr;
 
   drawRing(frac);
