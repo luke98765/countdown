@@ -481,6 +481,7 @@ function pongStep(g){
     return;
   }
 
+  const prevBx=g.bx, prevBy=g.by;
   g.bx+=g.bvx; g.by+=g.bvy;
 
   // Top/bottom walls
@@ -489,7 +490,7 @@ function pongStep(g){
 
   // Left paddle (AI)
   const lx=PAD_MARGIN+PAD_W;
-  if(g.bvx<0&&g.bx-BALL_R<=lx&&g.bx-BALL_R>=lx-8&&g.by>=g.lY&&g.by<=g.lY+PAD_H){
+  if(g.bvx<0&&prevBx-BALL_R>lx&&g.bx-BALL_R<=lx&&g.by>=g.lY&&g.by<=g.lY+PAD_H){
     g.bvx=Math.abs(g.bvx)*1.06;
     const rel=(g.by-(g.lY+PAD_H/2))/(PAD_H/2);
     g.bvy=rel*8;
@@ -497,7 +498,7 @@ function pongStep(g){
   }
   // Right paddle (player)
   const rx=PW-PAD_MARGIN-PAD_W;
-  if(g.bvx>0&&g.bx+BALL_R>=rx&&g.bx+BALL_R<=rx+8&&g.by>=g.rY&&g.by<=g.rY+PAD_H){
+  if(g.bvx>0&&prevBx+BALL_R<rx&&g.bx+BALL_R>=rx&&g.by>=g.rY&&g.by<=g.rY+PAD_H){
     g.bvx=-Math.abs(g.bvx)*1.06;
     const rel=(g.by-(g.rY+PAD_H/2))/(PAD_H/2);
     g.bvy=rel*8;
@@ -530,18 +531,19 @@ function pongStep(g){
   }
   if(g.b2active){
     g.b2timer++;
+    const prevB2x=g.b2x;
     g.b2x+=g.b2vx; g.b2y+=g.b2vy;
     // Walls
     if(g.b2y-BALL_R<=0){g.b2y=BALL_R;g.b2vy=Math.abs(g.b2vy);g.b2flash=6;}
     if(g.b2y+BALL_R>=PH){g.b2y=PH-BALL_R;g.b2vy=-Math.abs(g.b2vy);g.b2flash=6;}
     // AI paddle
-    if(g.b2vx<0&&g.b2x-BALL_R<=lx&&g.b2x-BALL_R>=lx-8&&g.b2y>=g.lY&&g.b2y<=g.lY+PAD_H){
+    if(g.b2vx<0&&prevB2x-BALL_R>lx&&g.b2x-BALL_R<=lx&&g.b2y>=g.lY&&g.b2y<=g.lY+PAD_H){
       g.b2vx=Math.abs(g.b2vx)*1.04;
       g.b2vy=((g.b2y-(g.lY+PAD_H/2))/(PAD_H/2))*8;
       g.b2x=lx+BALL_R; g.b2flash=8;
     }
     // Player paddle
-    if(g.b2vx>0&&g.b2x+BALL_R>=rx&&g.b2x+BALL_R<=rx+8&&g.b2y>=g.rY&&g.b2y<=g.rY+PAD_H){
+    if(g.b2vx>0&&prevB2x+BALL_R<rx&&g.b2x+BALL_R>=rx&&g.b2y>=g.rY&&g.b2y<=g.rY+PAD_H){
       g.b2vx=-Math.abs(g.b2vx)*1.04;
       g.b2vy=((g.b2y-(g.rY+PAD_H/2))/(PAD_H/2))*8;
       g.b2x=rx-BALL_R; g.b2flash=8;
