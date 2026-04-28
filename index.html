@@ -132,6 +132,9 @@
     }
     .diff-btn:hover { background: rgba(255,255,255,0.1); color: #f1f5f9; }
     .diff-btn.active { background: rgba(34,211,238,0.15); border-color: rgba(34,211,238,0.5); color: #67e8f9; }
+    .diff-btn[data-diff="super"] { border-color: rgba(239,68,68,0.4); color: rgba(252,165,165,0.7); }
+    .diff-btn[data-diff="super"]:hover { background: rgba(239,68,68,0.15); color: #fca5a5; }
+    .diff-btn[data-diff="super"].active { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.8); color: #f87171; }
 
     /* ── Fixed buttons ── */
     #music-btn, #pong-btn {
@@ -195,8 +198,9 @@
       <button class="diff-btn active" data-diff="easy">Easy</button>
       <button class="diff-btn" data-diff="medium">Medium</button>
       <button class="diff-btn" data-diff="hard">Hard</button>
+      <button class="diff-btn" data-diff="super">☠ Super</button>
     </div>
-    <div id="pong-hint">↑ / ↓ to move &nbsp;|&nbsp; first to 7 wins &nbsp;|&nbsp; ESC to close</div>
+    <div id="pong-hint">↑ / ↓ to move &nbsp;|&nbsp; first to 7 wins &nbsp;|&nbsp; ☠ Super = near-perfect AI &nbsp;|&nbsp; ESC to close</div>
     <button id="pong-close">✕ close</button>
   </div>
 
@@ -372,6 +376,7 @@ const DIFF_SETTINGS = {
   easy:   { speed: 3.2, jitter: 0.75, zone: 0.45 },
   medium: { speed: 5.0, jitter: 0.45, zone: 0.58 },
   hard:   { speed: 6.8, jitter: 0.15, zone: 0.80 },
+  super:  { speed: 12.0, jitter: 0.0, zone: 1.0  },
 };
 const PAD_W=14, PAD_H=90, BALL_R=10, PAD_MARGIN=24;
 const PAD_SPEED=10;
@@ -395,7 +400,7 @@ function makePong(){
     bvx:(Math.random()>0.5?1:-1)*5,
     bvy:(Math.random()*3+2)*(Math.random()>0.5?1:-1),
     flash:0, winFlash:0, winner:null,
-    serving:true, serveTimer:70,
+    serving:true, serveTimer:35,
     // AI state
     aiTarget:PH/2, aiJitter:0,
     // second ball
@@ -414,9 +419,9 @@ window.addEventListener("keyup",e=>{ keys[e.key]=false; });
 
 function resetBall(g, toRight){
   g.bx=PW/2; g.by=PH/2;
-  g.bvx=(toRight?1:-1)*7;
-  g.bvy=(Math.random()*4+3)*(Math.random()>0.5?1:-1);
-  g.serving=true; g.serveTimer=70;
+  g.bvx=(toRight?1:-1)*11;
+  g.bvy=(Math.random()*5+4)*(Math.random()>0.5?1:-1);
+  g.serving=true; g.serveTimer=35;
 }
 
 /* ── Second ball helpers ── */
@@ -439,16 +444,18 @@ function stepAI(g){
   const AI_SPEED = ds.speed;
   const REACTION_ZONE = PW * ds.zone;
 
-  if(Math.random()<0.025){
-    g.aiJitter=(Math.random()-0.5)*PAD_H*ds.jitter;
-  }
-
-  if(g.bvx<0&&g.bx<REACTION_ZONE){
-    // Ball heading left — track it
-    g.aiTarget=g.by+g.aiJitter;
+  if(aiDifficulty === 'super'){
+    // Perfect tracking — always aims dead-centre on the ball
+    g.aiTarget = g.by;
   } else {
-    // Ball going away — drift back toward centre slowly
-    g.aiTarget=PH/2;
+    if(Math.random()<0.025){
+      g.aiJitter=(Math.random()-0.5)*PAD_H*ds.jitter;
+    }
+    if(g.bvx<0&&g.bx<REACTION_ZONE){
+      g.aiTarget=g.by+g.aiJitter;
+    } else {
+      g.aiTarget=PH/2;
+    }
   }
 
   const padCentre=g.lY+PAD_H/2;
@@ -483,7 +490,7 @@ function pongStep(g){
   // Left paddle (AI)
   const lx=PAD_MARGIN+PAD_W;
   if(g.bvx<0&&g.bx-BALL_R<=lx&&g.bx-BALL_R>=lx-8&&g.by>=g.lY&&g.by<=g.lY+PAD_H){
-    g.bvx=Math.abs(g.bvx)*1.04;
+    g.bvx=Math.abs(g.bvx)*1.06;
     const rel=(g.by-(g.lY+PAD_H/2))/(PAD_H/2);
     g.bvy=rel*8;
     g.bx=lx+BALL_R; g.flash=8;
@@ -491,7 +498,7 @@ function pongStep(g){
   // Right paddle (player)
   const rx=PW-PAD_MARGIN-PAD_W;
   if(g.bvx>0&&g.bx+BALL_R>=rx&&g.bx+BALL_R<=rx+8&&g.by>=g.rY&&g.by<=g.rY+PAD_H){
-    g.bvx=-Math.abs(g.bvx)*1.04;
+    g.bvx=-Math.abs(g.bvx)*1.06;
     const rel=(g.by-(g.rY+PAD_H/2))/(PAD_H/2);
     g.bvy=rel*8;
     g.bx=rx-BALL_R; g.flash=8;
@@ -499,7 +506,7 @@ function pongStep(g){
 
   // Cap speed
   const spd=Math.sqrt(g.bvx*g.bvx+g.bvy*g.bvy);
-  if(spd>20){g.bvx=g.bvx/spd*20;g.bvy=g.bvy/spd*20;}
+  if(spd>28){g.bvx=g.bvx/spd*28;g.bvy=g.bvy/spd*28;}
 
   // Scoring
   if(g.bx<0){
