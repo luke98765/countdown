@@ -374,7 +374,7 @@ const DIFF_SETTINGS = {
   hard:   { speed: 6.8, jitter: 0.15, zone: 0.80 },
 };
 const PAD_W=14, PAD_H=90, BALL_R=10, PAD_MARGIN=24;
-const PAD_SPEED=7;
+const PAD_SPEED=10;
 
 let pong=null, pongRunning=false, pongRaf=null;
 let PW=window.innerWidth, PH=window.innerHeight;
@@ -398,6 +398,9 @@ function makePong(){
     serving:true, serveTimer:70,
     // AI state
     aiTarget:PH/2, aiJitter:0,
+    // second ball
+    b2active:false, b2x:0,b2y:0,b2vx:0,b2vy:0,b2flash:0,b2timer:0,
+    b2spawnCountdown: 600 + Math.floor(Math.random()*300), // ~10-15s
   };
 }
 
@@ -411,10 +414,20 @@ window.addEventListener("keyup",e=>{ keys[e.key]=false; });
 
 function resetBall(g, toRight){
   g.bx=PW/2; g.by=PH/2;
-  g.bvx=(toRight?1:-1)*5;
-  g.bvy=(Math.random()*3+2)*(Math.random()>0.5?1:-1);
+  g.bvx=(toRight?1:-1)*7;
+  g.bvy=(Math.random()*4+3)*(Math.random()>0.5?1:-1);
   g.serving=true; g.serveTimer=70;
 }
+
+/* ── Second ball helpers ── */
+function spawnBall2(g){
+  g.b2x=PW/2; g.b2y=PH/3+Math.random()*PH/3;
+  g.b2vx=(Math.random()>0.5?1:-1)*7;
+  g.b2vy=(Math.random()*4+3)*(Math.random()>0.5?1:-1);
+  g.b2active=true; g.b2flash=0;
+  g.b2timer=0; // frames alive
+}
+function removeBall2(g){ g.b2active=false; }
 
 /* AI: medium difficulty
    - Tracks the ball with a delay (reacts only when ball is heading its way)
@@ -486,7 +499,7 @@ function pongStep(g){
 
   // Cap speed
   const spd=Math.sqrt(g.bvx*g.bvx+g.bvy*g.bvy);
-  if(spd>14){g.bvx=g.bvx/spd*14;g.bvy=g.bvy/spd*14;}
+  if(spd>20){g.bvx=g.bvx/spd*20;g.bvy=g.bvy/spd*20;}
 
   // Scoring
   if(g.bx<0){
@@ -501,6 +514,50 @@ function pongStep(g){
   }
 
   if(g.flash>0) g.flash--;
+
+  /* ── Second ball ── */
+  // Countdown to spawn
+  if(!g.b2active && !g.winner && !g.serving){
+    g.b2spawnCountdown--;
+    if(g.b2spawnCountdown<=0) spawnBall2(g);
+  }
+  if(g.b2active){
+    g.b2timer++;
+    g.b2x+=g.b2vx; g.b2y+=g.b2vy;
+    // Walls
+    if(g.b2y-BALL_R<=0){g.b2y=BALL_R;g.b2vy=Math.abs(g.b2vy);g.b2flash=6;}
+    if(g.b2y+BALL_R>=PH){g.b2y=PH-BALL_R;g.b2vy=-Math.abs(g.b2vy);g.b2flash=6;}
+    // AI paddle
+    if(g.b2vx<0&&g.b2x-BALL_R<=lx&&g.b2x-BALL_R>=lx-8&&g.b2y>=g.lY&&g.b2y<=g.lY+PAD_H){
+      g.b2vx=Math.abs(g.b2vx)*1.04;
+      g.b2vy=((g.b2y-(g.lY+PAD_H/2))/(PAD_H/2))*8;
+      g.b2x=lx+BALL_R; g.b2flash=8;
+    }
+    // Player paddle
+    if(g.b2vx>0&&g.b2x+BALL_R>=rx&&g.b2x+BALL_R<=rx+8&&g.b2y>=g.rY&&g.b2y<=g.rY+PAD_H){
+      g.b2vx=-Math.abs(g.b2vx)*1.04;
+      g.b2vy=((g.b2y-(g.rY+PAD_H/2))/(PAD_H/2))*8;
+      g.b2x=rx-BALL_R; g.b2flash=8;
+    }
+    // Speed cap
+    const spd2=Math.sqrt(g.b2vx*g.b2vx+g.b2vy*g.b2vy);
+    if(spd2>20){g.b2vx=g.b2vx/spd2*20;g.b2vy=g.b2vy/spd2*20;}
+    // Scoring
+    if(g.b2x<0){
+      g.rScore++;
+      if(g.rScore>=WIN_SCORE){g.winner="right";g.winFlash=100;g.lScore=0;g.rScore=0;}
+      removeBall2(g);
+      g.b2spawnCountdown=600+Math.floor(Math.random()*300);
+    } else if(g.b2x>PW){
+      g.lScore++;
+      if(g.lScore>=WIN_SCORE){g.winner="left";g.winFlash=100;g.lScore=0;g.rScore=0;}
+      removeBall2(g);
+      g.b2spawnCountdown=600+Math.floor(Math.random()*300);
+    }
+    if(g.b2flash>0) g.b2flash--;
+    // Auto-expire after ~20 seconds so it doesn't loop forever
+    if(g.b2timer>1200){ removeBall2(g); g.b2spawnCountdown=600+Math.floor(Math.random()*300); }
+  }
 }
 
 function pongDraw(g){
@@ -537,6 +594,15 @@ function pongDraw(g){
   if(g.flash>0){pc.fillStyle="#fff";pc.shadowColor="#fff";pc.shadowBlur=22;}
   else{pc.fillStyle="#4ade80";pc.shadowColor="#4ade80";pc.shadowBlur=18;}
   pc.fill();pc.shadowBlur=0;
+
+  // Second ball (orange/amber)
+  if(g.b2active){
+    pc.beginPath();
+    pc.arc(g.b2x,g.b2y,BALL_R,0,Math.PI*2);
+    if(g.b2flash>0){pc.fillStyle="#fff";pc.shadowColor="#fff";pc.shadowBlur=22;}
+    else{pc.fillStyle="#f97316";pc.shadowColor="#f97316";pc.shadowBlur=18;}
+    pc.fill();pc.shadowBlur=0;
+  }
 
   // Serve text
   if(g.serving){
@@ -583,6 +649,7 @@ function closePong(){
   if(pongRaf) cancelAnimationFrame(pongRaf);
   pongOverlay.classList.remove("active");
   dvdEl.classList.remove("hidden");
+  if(pong) removeBall2(pong);
 }
 
 document.querySelectorAll(".diff-btn").forEach(btn=>{
