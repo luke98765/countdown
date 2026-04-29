@@ -390,6 +390,14 @@ function resizePong(){
 }
 window.addEventListener("resize",()=>{ if(pongRunning) resizePong(); });
 
+// Returns frames before second ball spawns, based on current difficulty
+function b2Delay(){
+  if(aiDifficulty==='super') return 180+Math.floor(Math.random()*120);  // ~3-5s
+  if(aiDifficulty==='hard')  return 240+Math.floor(Math.random()*180);  // ~4-7s
+  if(aiDifficulty==='medium')return 420+Math.floor(Math.random()*240);  // ~7-11s
+  return 600+Math.floor(Math.random()*300);                              // easy: ~10-15s
+}
+
 function makePong(){
   resizePong();
   return {
@@ -397,15 +405,15 @@ function makePong(){
     lY:PH/2-PAD_H/2, rY:PH/2-PAD_H/2,
     rV:0,
     bx:PW/2, by:PH/2,
-    bvx:(Math.random()>0.5?1:-1)*5,
-    bvy:(Math.random()*3+2)*(Math.random()>0.5?1:-1),
+    bvx:(Math.random()>0.5?1:-1)*11,
+    bvy:(Math.random()*5+4)*(Math.random()>0.5?1:-1),
     flash:0, winFlash:0, winner:null,
     serving:true, serveTimer:35,
     // AI state
     aiTarget:PH/2, aiJitter:0,
     // second ball
     b2active:false, b2x:0,b2y:0,b2vx:0,b2vy:0,b2flash:0,b2timer:0,
-    b2spawnCountdown: 600 + Math.floor(Math.random()*300), // ~10-15s
+    b2spawnCountdown: b2Delay(),
   };
 }
 
@@ -556,16 +564,16 @@ function pongStep(g){
       g.rScore++;
       if(g.rScore>=WIN_SCORE){g.winner="right";g.winFlash=100;g.lScore=0;g.rScore=0;}
       removeBall2(g);
-      g.b2spawnCountdown=600+Math.floor(Math.random()*300);
+      g.b2spawnCountdown=b2Delay();
     } else if(g.b2x>PW){
       g.lScore++;
       if(g.lScore>=WIN_SCORE){g.winner="left";g.winFlash=100;g.lScore=0;g.rScore=0;}
       removeBall2(g);
-      g.b2spawnCountdown=600+Math.floor(Math.random()*300);
+      g.b2spawnCountdown=b2Delay();
     }
     if(g.b2flash>0) g.b2flash--;
     // Auto-expire after ~20 seconds so it doesn't loop forever
-    if(g.b2timer>1200){ removeBall2(g); g.b2spawnCountdown=600+Math.floor(Math.random()*300); }
+    if(g.b2timer>1200){ removeBall2(g); g.b2spawnCountdown=b2Delay(); }
   }
 }
 
@@ -666,7 +674,11 @@ document.querySelectorAll(".diff-btn").forEach(btn=>{
     document.querySelectorAll(".diff-btn").forEach(b=>b.classList.remove("active"));
     this.classList.add("active");
     aiDifficulty=this.dataset.diff;
-    if(pong) pong.aiJitter=0; // reset jitter on change
+    if(pong){
+      pong.aiJitter=0;
+      pong.aiTarget=PH/2; // clear stale targeting
+      if(!pong.b2active) pong.b2spawnCountdown=b2Delay(); // re-roll spawn timer for new mode
+    }
   });
 });
 
