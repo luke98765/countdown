@@ -676,8 +676,14 @@ document.querySelectorAll(".diff-btn").forEach(btn=>{
     aiDifficulty=this.dataset.diff;
     if(pong){
       pong.aiJitter=0;
-      pong.aiTarget=PH/2; // clear stale targeting
-      if(!pong.b2active) pong.b2spawnCountdown=b2Delay(); // re-roll spawn timer for new mode
+      pong.aiTarget=PH/2;
+      if(!pong.b2active) pong.b2spawnCountdown=b2Delay();
+      // Re-serve immediately so the new mode is felt right away
+      if(!pong.serving && !pong.winFlash && !pong.winner){
+        resetBall(pong, Math.random()>0.5);
+        removeBall2(pong);
+        pong.b2spawnCountdown=b2Delay();
+      }
     }
   });
 });
