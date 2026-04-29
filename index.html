@@ -39,6 +39,7 @@
     #pong-canvas {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
+      pointer-events: none;
     }
 
     /* Countdown shown inside pong */
@@ -621,6 +622,14 @@ function pongDraw(g){
     pc.fill();pc.shadowBlur=0;
   }
 
+  // Mode label (bottom center) — confirms live mode
+  const modeLabel = aiDifficulty==='super' ? '☠ SUPER' : aiDifficulty.toUpperCase();
+  const modeColor = aiDifficulty==='super' ? 'rgba(248,113,113,0.5)' : 'rgba(148,163,184,0.35)';
+  pc.font="11px 'DM Mono',monospace";
+  pc.fillStyle=modeColor;
+  pc.textAlign="center";
+  pc.fillText(modeLabel, PW/2, PH-14);
+
   // Serve text
   if(g.serving){
     pc.font="13px 'DM Mono',monospace";
@@ -670,15 +679,15 @@ function closePong(){
 }
 
 document.querySelectorAll(".diff-btn").forEach(btn=>{
-  btn.addEventListener("click",function(){
+  btn.addEventListener("click",()=>{
     document.querySelectorAll(".diff-btn").forEach(b=>b.classList.remove("active"));
-    this.classList.add("active");
-    aiDifficulty=this.dataset.diff;
+    btn.classList.add("active");
+    aiDifficulty=btn.dataset.diff;
+    btn.blur(); // return focus to window so arrow keys keep working
     if(pong){
       pong.aiJitter=0;
       pong.aiTarget=PH/2;
       if(!pong.b2active) pong.b2spawnCountdown=b2Delay();
-      // Re-serve immediately so the new mode is felt right away
       if(!pong.serving && !pong.winFlash && !pong.winner){
         resetBall(pong, Math.random()>0.5);
         removeBall2(pong);
