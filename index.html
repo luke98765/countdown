@@ -460,9 +460,28 @@ function stepAI(g){
   const REACTION_ZONE = PW * ds.zone;
 
   if(aiDifficulty === 'impossible'){
-    // Teleport. No speed limit. No reaction delay. No mercy.
-    g.lY = Math.max(0, Math.min(PH - PAD_H, g.by - PAD_H / 2));
-    return; // skip the speed-limited move below
+    // Pick the most threatening ball (closest to left wall, heading left)
+    // Predict one frame ahead since stepAI runs before ball moves
+    let targetY = g.by + g.bvy; // where main ball will be after this frame
+    // clamp predicted y off walls
+    if(targetY - BALL_R <= 0) targetY = BALL_R;
+    if(targetY + BALL_R >= PH) targetY = PH - BALL_R;
+
+    if(g.b2active){
+      // If second ball is heading left and closer to the wall, track it instead
+      const lx = PAD_MARGIN + PAD_W;
+      const mainDist = g.bvx < 0 ? g.bx - lx : Infinity;
+      const b2Dist   = g.b2vx < 0 ? g.b2x - lx : Infinity;
+      if(b2Dist < mainDist){
+        let ty = g.b2y + g.b2vy;
+        if(ty - BALL_R <= 0) ty = BALL_R;
+        if(ty + BALL_R >= PH) ty = PH - BALL_R;
+        targetY = ty;
+      }
+    }
+
+    g.lY = Math.max(0, Math.min(PH - PAD_H, targetY - PAD_H / 2));
+    return;
   } else if(aiDifficulty === 'super'){
     // Predictive: simulate ball bounces to find where it will reach lx
     if(g.bvx < 0){
