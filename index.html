@@ -374,13 +374,13 @@ let aiDifficulty = "easy"; // easy | medium | hard
 
 // Difficulty settings: [speed, jitterScale, reactionZoneFraction]
 const DIFF_SETTINGS = {
-  easy:   { speed: 3.2, jitter: 0.75, zone: 0.45 },
-  medium: { speed: 5.0, jitter: 0.45, zone: 0.58 },
-  hard:   { speed: 6.8, jitter: 0.15, zone: 0.80 },
-  super:  { speed: 12.0, jitter: 0.0, zone: 1.0  },
+  easy:   { speed: 5.0,  jitter: 0.75, zone: 0.45 },
+  medium: { speed: 7.5,  jitter: 0.45, zone: 0.58 },
+  hard:   { speed: 10.5, jitter: 0.15, zone: 0.80 },
+  super:  { speed: 22.0, jitter: 0.0,  zone: 1.0  },
 };
 const PAD_W=14, PAD_H=90, BALL_R=10, PAD_MARGIN=24;
-const PAD_SPEED=10;
+const PAD_SPEED=14;
 
 let pong=null, pongRunning=false, pongRaf=null;
 let PW=window.innerWidth, PH=window.innerHeight;
@@ -406,8 +406,8 @@ function makePong(){
     lY:PH/2-PAD_H/2, rY:PH/2-PAD_H/2,
     rV:0,
     bx:PW/2, by:PH/2,
-    bvx:(Math.random()>0.5?1:-1)*11,
-    bvy:(Math.random()*5+4)*(Math.random()>0.5?1:-1),
+    bvx:(Math.random()>0.5?1:-1)*15,
+    bvy:(Math.random()*6+5)*(Math.random()>0.5?1:-1),
     flash:0, winFlash:0, winner:null,
     serving:true, serveTimer:35,
     // AI state
@@ -428,16 +428,16 @@ window.addEventListener("keyup",e=>{ keys[e.key]=false; });
 
 function resetBall(g, toRight){
   g.bx=PW/2; g.by=PH/2;
-  g.bvx=(toRight?1:-1)*11;
-  g.bvy=(Math.random()*5+4)*(Math.random()>0.5?1:-1);
+  g.bvx=(toRight?1:-1)*15;
+  g.bvy=(Math.random()*6+5)*(Math.random()>0.5?1:-1);
   g.serving=true; g.serveTimer=35;
 }
 
 /* ── Second ball helpers ── */
 function spawnBall2(g){
   g.b2x=PW/2; g.b2y=PH/3+Math.random()*PH/3;
-  g.b2vx=(Math.random()>0.5?1:-1)*7;
-  g.b2vy=(Math.random()*4+3)*(Math.random()>0.5?1:-1);
+  g.b2vx=(Math.random()>0.5?1:-1)*12;
+  g.b2vy=(Math.random()*6+5)*(Math.random()>0.5?1:-1);
   g.b2active=true; g.b2flash=0;
   g.b2timer=0; // frames alive
 }
@@ -454,8 +454,20 @@ function stepAI(g){
   const REACTION_ZONE = PW * ds.zone;
 
   if(aiDifficulty === 'super'){
-    // Perfect tracking — always aims dead-centre on the ball
-    g.aiTarget = g.by;
+    // Predictive: simulate ball bounces to find where it will reach lx
+    if(g.bvx < 0){
+      const lx = PAD_MARGIN + PAD_W;
+      let sx = g.bx, sy = g.by, svx = g.bvx, svy = g.bvy;
+      let steps = 0;
+      while(sx > lx && steps < 600){
+        sx += svx; sy += svy; steps++;
+        if(sy - BALL_R <= 0){ sy = BALL_R; svy = Math.abs(svy); }
+        if(sy + BALL_R >= PH){ sy = PH - BALL_R; svy = -Math.abs(svy); }
+      }
+      g.aiTarget = sy; // aim for exact landing spot
+    } else {
+      g.aiTarget = PH / 2; // ball going away — rest center
+    }
   } else {
     if(Math.random()<0.025){
       g.aiJitter=(Math.random()-0.5)*PAD_H*ds.jitter;
@@ -516,7 +528,7 @@ function pongStep(g){
 
   // Cap speed
   const spd=Math.sqrt(g.bvx*g.bvx+g.bvy*g.bvy);
-  if(spd>28){g.bvx=g.bvx/spd*28;g.bvy=g.bvy/spd*28;}
+  if(spd>36){g.bvx=g.bvx/spd*36;g.bvy=g.bvy/spd*36;}
 
   // Scoring
   if(g.bx<0){
