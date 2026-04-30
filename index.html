@@ -136,6 +136,9 @@
     .diff-btn[data-diff="super"] { border-color: rgba(239,68,68,0.4); color: rgba(252,165,165,0.7); }
     .diff-btn[data-diff="super"]:hover { background: rgba(239,68,68,0.15); color: #fca5a5; }
     .diff-btn[data-diff="super"].active { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.8); color: #f87171; }
+    .diff-btn[data-diff="impossible"] { border-color: rgba(168,85,247,0.4); color: rgba(216,180,254,0.6); letter-spacing: 0.03em; }
+    .diff-btn[data-diff="impossible"]:hover { background: rgba(168,85,247,0.15); color: #e879f9; }
+    .diff-btn[data-diff="impossible"].active { background: rgba(168,85,247,0.25); border-color: rgba(168,85,247,0.9); color: #e879f9; text-shadow: 0 0 8px rgba(232,121,249,0.8); }
 
     /* ── Fixed buttons ── */
     #music-btn, #pong-btn {
@@ -200,8 +203,9 @@
       <button class="diff-btn" data-diff="medium">Medium</button>
       <button class="diff-btn" data-diff="hard">Hard</button>
       <button class="diff-btn" data-diff="super">☠ Super</button>
+      <button class="diff-btn" data-diff="impossible">⬡ Impossible</button>
     </div>
-    <div id="pong-hint">↑ / ↓ to move &nbsp;|&nbsp; first to 7 wins &nbsp;|&nbsp; ☠ Super = near-perfect AI &nbsp;|&nbsp; ESC to close</div>
+    <div id="pong-hint">↑ / ↓ to move &nbsp;|&nbsp; first to 7 wins &nbsp;|&nbsp; ☠ Super = predictive AI &nbsp;|&nbsp; ⬡ Impossible = unbeatable &nbsp;|&nbsp; ESC to close</div>
     <button id="pong-close">✕ close</button>
   </div>
 
@@ -378,6 +382,7 @@ const DIFF_SETTINGS = {
   medium: { speed: 7.5,  jitter: 0.45, zone: 0.58 },
   hard:   { speed: 10.5, jitter: 0.15, zone: 0.80 },
   super:  { speed: 22.0, jitter: 0.0,  zone: 1.0  },
+  impossible: { speed: 999, jitter: 0.0, zone: 1.0 },
 };
 const PAD_W=14, PAD_H=90, BALL_R=10, PAD_MARGIN=24;
 const PAD_SPEED=14;
@@ -393,6 +398,7 @@ window.addEventListener("resize",()=>{ if(pongRunning) resizePong(); });
 
 // Returns frames before second ball spawns, based on current difficulty
 function b2Delay(){
+  if(aiDifficulty==='impossible') return 120+Math.floor(Math.random()*60);  // ~2-3s
   if(aiDifficulty==='super') return 180+Math.floor(Math.random()*120);  // ~3-5s
   if(aiDifficulty==='hard')  return 240+Math.floor(Math.random()*180);  // ~4-7s
   if(aiDifficulty==='medium')return 420+Math.floor(Math.random()*240);  // ~7-11s
@@ -453,7 +459,10 @@ function stepAI(g){
   const AI_SPEED = ds.speed;
   const REACTION_ZONE = PW * ds.zone;
 
-  if(aiDifficulty === 'super'){
+  if(aiDifficulty === 'impossible'){
+    // Teleport. No speed limit. No reaction delay. No mercy.
+    g.lY = Math.max(0, Math.min(PH - PAD_H, g.by - PAD_H / 2));
+  } else if(aiDifficulty === 'super'){
     // Predictive: simulate ball bounces to find where it will reach lx
     if(g.bvx < 0){
       const lx = PAD_MARGIN + PAD_W;
@@ -635,8 +644,8 @@ function pongDraw(g){
   }
 
   // Mode label (bottom center) — confirms live mode
-  const modeLabel = aiDifficulty==='super' ? '☠ SUPER' : aiDifficulty.toUpperCase();
-  const modeColor = aiDifficulty==='super' ? 'rgba(248,113,113,0.5)' : 'rgba(148,163,184,0.35)';
+  const modeLabel = aiDifficulty==='impossible' ? '⬡ IMPOSSIBLE' : aiDifficulty==='super' ? '☠ SUPER' : aiDifficulty.toUpperCase();
+  const modeColor = aiDifficulty==='impossible' ? 'rgba(232,121,249,0.55)' : aiDifficulty==='super' ? 'rgba(248,113,113,0.5)' : 'rgba(148,163,184,0.35)';
   pc.font="11px 'DM Mono',monospace";
   pc.fillStyle=modeColor;
   pc.textAlign="center";
