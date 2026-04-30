@@ -462,6 +462,7 @@ function stepAI(g){
   if(aiDifficulty === 'impossible'){
     // Teleport. No speed limit. No reaction delay. No mercy.
     g.lY = Math.max(0, Math.min(PH - PAD_H, g.by - PAD_H / 2));
+    return; // skip the speed-limited move below
   } else if(aiDifficulty === 'super'){
     // Predictive: simulate ball bounces to find where it will reach lx
     if(g.bvx < 0){
