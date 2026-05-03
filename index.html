@@ -1157,10 +1157,8 @@ function chEval(board){
     const pstRow=color==="w"?r:7-r;
     score+=(color==="w"?1:-1)*((CH_MAT[type]||0)+(CH_PST[type]?CH_PST[type][pstRow][c]:0));
   }
-  return score; // positive = white winning
+  return score;
 }
-
-// Move ordering: captures first (MVV-LVA), then positional moves
 function chOrderMoves(board,moves){
   return moves.map(m=>{
     const victim=board[m.tr][m.tc];
@@ -1169,22 +1167,33 @@ function chOrderMoves(board,moves){
     return {...m,score};
   }).sort((a,b)=>b.score-a.score);
 }
-
-// Minimax with alpha-beta pruning
+function chQuiesce(board,alpha,beta,maximizing){
+  const stand=chEval(board);
+  if(maximizing){ if(stand>=beta) return beta; alpha=Math.max(alpha,stand); }
+  else { if(stand<=alpha) return alpha; beta=Math.min(beta,stand); }
+  const color=maximizing?"w":"b";
+  const caps=chOrderMoves(board,chAllMoves(board,color)).filter(m=>board[m.tr][m.tc]);
+  for(const m of caps){
+    const nb=chDoMove(board,m.fr,m.fc,m.tr,m.tc);
+    const sc=chQuiesce(nb,alpha,beta,!maximizing);
+    if(maximizing){ alpha=Math.max(alpha,sc); if(alpha>=beta) return beta; }
+    else { beta=Math.min(beta,sc); if(alpha>=beta) return alpha; }
+  }
+  return maximizing?alpha:beta;
+}
 function chMinimax(board,depth,alpha,beta,maximizing){
   if(!board.flat().includes("wK")) return -20000;
   if(!board.flat().includes("bK")) return 20000;
-  if(depth===0) return chEval(board);
+  if(depth===0) return chQuiesce(board,alpha,beta,maximizing);
   const color=maximizing?"w":"b";
   const moves=chOrderMoves(board,chAllMoves(board,color));
-  if(!moves.length) return maximizing?-15000:15000; // stalemate/checkmate
+  if(!moves.length) return maximizing?-15000:15000;
   if(maximizing){
     let best=-Infinity;
     for(const m of moves){
       const nb=chDoMove(board,m.fr,m.fc,m.tr,m.tc);
       best=Math.max(best,chMinimax(nb,depth-1,alpha,beta,false));
-      alpha=Math.max(alpha,best);
-      if(alpha>=beta) break;
+      alpha=Math.max(alpha,best); if(alpha>=beta) break;
     }
     return best;
   } else {
@@ -1192,23 +1201,107 @@ function chMinimax(board,depth,alpha,beta,maximizing){
     for(const m of moves){
       const nb=chDoMove(board,m.fr,m.fc,m.tr,m.tc);
       best=Math.min(best,chMinimax(nb,depth-1,alpha,beta,true));
-      beta=Math.min(beta,best);
-      if(alpha>=beta) break;
+      beta=Math.min(beta,best); if(alpha>=beta) break;
     }
     return best;
   }
 }
-
 function chAIMove(board){
   const moves=chOrderMoves(board,chAllMoves(board,"b"));
   if(!moves.length) return null;
   let best=null,bestScore=Infinity;
   for(const m of moves){
     const nb=chDoMove(board,m.fr,m.fc,m.tr,m.tc);
-    const sc=chMinimax(nb,3,-Infinity,Infinity,true); // depth 3 = 4-ply total
+    const sc=chMinimax(nb,4,-Infinity,Infinity,true);
     if(sc<bestScore){bestScore=sc;best=m;}
   }
   return best;
+}
+function chDrawPiece(ctx,type,isWhite,cx,cy,S){
+  ctx.save();
+  ctx.translate(cx,cy);
+  const fill=isWhite?'#fdf3dc':'#2a1505';
+  const edge=isWhite?'#9a7030':'#c89830';
+  const inner=isWhite?'#e8c878':'#6a4010';
+  ctx.shadowColor='rgba(0,0,0,0.55)';
+  ctx.shadowBlur=S*0.13; ctx.shadowOffsetX=S*0.03; ctx.shadowOffsetY=S*0.07;
+  ctx.lineWidth=Math.max(1.5,S*0.038); ctx.strokeStyle=edge; ctx.fillStyle=fill;
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  const H=S*0.46,bw=S*0.36,nw=S*0.13,bh=S*0.10;
+  function base(){
+    ctx.beginPath();
+    ctx.moveTo(-bw,H); ctx.lineTo(bw,H);
+    ctx.lineTo(nw*1.3,H-bh); ctx.lineTo(-nw*1.3,H-bh);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  function stem(w1,w2,y2){
+    ctx.beginPath();
+    ctx.moveTo(-w1,H-bh); ctx.lineTo(w1,H-bh);
+    ctx.lineTo(w2,y2); ctx.lineTo(-w2,y2);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  if(type==='P'){
+    base(); stem(nw*0.9,nw*0.55,H-bh*2.8);
+    ctx.beginPath(); ctx.arc(0,H-bh*2.8-S*0.13,S*0.13,0,Math.PI*2);
+    ctx.fill(); ctx.stroke();
+  } else if(type==='R'){
+    base(); stem(nw*0.9,nw*0.9,-H*0.62);
+    [[-nw,0],[nw,0]].forEach(([x])=>{
+      ctx.beginPath(); ctx.rect(x-nw*0.45,-H*0.62-bh*1.1,nw*0.9,bh*1.1); ctx.fill(); ctx.stroke();
+    });
+    ctx.beginPath(); ctx.rect(-nw*0.45,-H*0.62-bh*1.1,nw*0.9,bh*1.1); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.rect(-nw*0.38,-H*0.45,nw*0.76,H*0.58);
+    ctx.fillStyle=inner; ctx.fill(); ctx.strokeStyle=inner; ctx.stroke();
+  } else if(type==='N'){
+    base();
+    ctx.strokeStyle=edge; ctx.fillStyle=fill; ctx.lineWidth=Math.max(1.5,S*0.038);
+    const sc=S*0.34;
+    ctx.beginPath();
+    ctx.moveTo(-nw*0.4,H-bh); ctx.lineTo(nw*0.4,H-bh);
+    ctx.bezierCurveTo(nw*0.6,H-bh*2.5,sc*0.5,0,sc*0.55,-sc*0.75);
+    ctx.bezierCurveTo(sc*0.4,-sc*1.05,-sc*0.05,-sc*1.1,-sc*0.28,-sc*0.92);
+    ctx.bezierCurveTo(-sc*0.52,-sc*0.62,-sc*0.52,-sc*0.18,-sc*0.22,sc*0.05);
+    ctx.bezierCurveTo(-sc*0.1,sc*0.22,-nw*0.5,H-bh*2,-nw*0.4,H-bh);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(sc*0.12,-sc*0.75,S*0.032,0,Math.PI*2);
+    ctx.fillStyle=edge; ctx.shadowBlur=0; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(sc*0.45,-sc*0.6); ctx.lineTo(sc*0.1,0);
+    ctx.strokeStyle=inner; ctx.lineWidth=Math.max(1,S*0.025); ctx.stroke();
+  } else if(type==='B'){
+    base(); stem(nw*0.8,nw*0.45,H-bh*2.5);
+    ctx.beginPath(); ctx.ellipse(0,H*0.08-H*0.6,nw*0.52,H*0.55,0,0,Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,-H*0.82,S*0.085,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-nw*0.55,-H*0.18); ctx.lineTo(nw*0.55,-H*0.38);
+    ctx.strokeStyle=inner; ctx.lineWidth=Math.max(1.2,S*0.028); ctx.stroke();
+  } else if(type==='Q'){
+    base(); stem(nw*1.0,nw*0.65,H-bh*2.2);
+    ctx.beginPath();
+    ctx.moveTo(-nw*0.8,H-bh*2.2);
+    ctx.bezierCurveTo(-nw*0.9,H*0.1,-nw*0.55,-H*0.1,-nw*0.65,-H*0.52);
+    ctx.lineTo(-nw*0.88,-H*0.58); ctx.lineTo(nw*0.88,-H*0.58);
+    ctx.lineTo(nw*0.65,-H*0.1);
+    ctx.bezierCurveTo(nw*0.55,-H*0.1,nw*0.9,H*0.1,nw*0.8,H-bh*2.2);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    const qr=S*0.065,qy=-H*0.72;
+    [-nw*0.88,-nw*0.44,0,nw*0.44,nw*0.88].forEach(x=>{
+      ctx.beginPath(); ctx.arc(x,qy,qr,0,Math.PI*2);
+      ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle=edge; ctx.stroke();
+    });
+  } else if(type==='K'){
+    base(); stem(nw*1.0,nw*0.65,H-bh*2.2);
+    ctx.beginPath();
+    ctx.moveTo(-nw*0.75,H-bh*2.2);
+    ctx.bezierCurveTo(-nw*0.85,H*0.1,-nw*0.5,-H*0.08,-nw*0.55,-H*0.48);
+    ctx.lineTo(-nw*0.75,-H*0.54); ctx.lineTo(nw*0.75,-H*0.54);
+    ctx.lineTo(nw*0.55,-H*0.08);
+    ctx.bezierCurveTo(nw*0.5,-H*0.08,nw*0.85,H*0.1,nw*0.75,H-bh*2.2);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=fill; ctx.strokeStyle=edge; ctx.lineWidth=Math.max(1.5,S*0.038);
+    ctx.beginPath(); ctx.rect(-nw*0.18,-H*1.05,nw*0.36,H*0.62); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.rect(-nw*0.55,-H*0.82,nw*1.1,H*0.26); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
 }
 function drawChess(){
   const s=chessState;
@@ -1217,29 +1310,35 @@ function drawChess(){
   chessCanvas.style.position="absolute";
   chessCanvas.style.left=((window.innerWidth-(size+180))/2)+"px";
   chessCanvas.style.top=((window.innerHeight-size)/2)+"px";
-  // board
+  cc.fillStyle="#5a3a18"; cc.fillRect(-2,-2,size+4,size+4);
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-    const light=(r+c)%2===0;
-    cc.fillStyle=light?"#e8d5b0":"#b5834a";
+    cc.fillStyle=(r+c)%2===0?"#f0d9b5":"#b58863";
     cc.fillRect(c*CH_SZ,r*CH_SZ,CH_SZ,CH_SZ);
   }
-  // highlights
   if(s.selected){
     const [sr,sc]=s.selected;
-    cc.fillStyle="rgba(255,255,0,0.35)"; cc.fillRect(sc*CH_SZ,sr*CH_SZ,CH_SZ,CH_SZ);
-    s.moves.forEach(([mr,mc])=>{ cc.fillStyle="rgba(0,200,80,0.35)"; cc.fillRect(mc*CH_SZ,mr*CH_SZ,CH_SZ,CH_SZ); });
+    cc.fillStyle="rgba(255,240,50,0.45)"; cc.fillRect(sc*CH_SZ,sr*CH_SZ,CH_SZ,CH_SZ);
+    s.moves.forEach(([mr,mc])=>{
+      cc.fillStyle="rgba(50,220,100,0.38)"; cc.fillRect(mc*CH_SZ,mr*CH_SZ,CH_SZ,CH_SZ);
+      if(!s.board[mr][mc]){
+        cc.beginPath(); cc.arc(mc*CH_SZ+CH_SZ/2,mr*CH_SZ+CH_SZ/2,CH_SZ*0.14,0,Math.PI*2);
+        cc.fillStyle="rgba(0,160,60,0.5)"; cc.fill();
+      }
+    });
   }
-  // pieces
-  cc.font=`${CH_SZ*0.72}px serif`; cc.textAlign="center"; cc.textBaseline="middle";
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
     const p=s.board[r][c];
-    if(p){ cc.fillStyle=p[0]==="w"?"#f8f8f8":"#1a1a1a"; cc.fillText(CH_PIECES[p],c*CH_SZ+CH_SZ/2,r*CH_SZ+CH_SZ/2+2); }
+    if(p) chDrawPiece(cc,p[1],p[0]==="w",c*CH_SZ+CH_SZ/2,r*CH_SZ+CH_SZ/2,CH_SZ);
   }
-  // coords
-  cc.font="10px 'DM Mono',monospace"; cc.fillStyle="rgba(80,60,30,0.7)";
-  ["a","b","c","d","e","f","g","h"].forEach((l,i)=>{ cc.textAlign="center"; cc.fillText(l,i*CH_SZ+CH_SZ/2,size-6); });
-  [8,7,6,5,4,3,2,1].forEach((n,i)=>{ cc.textAlign="left"; cc.fillText(n,4,i*CH_SZ+14); });
-  // panel
+  cc.shadowBlur=0;
+  ["a","b","c","d","e","f","g","h"].forEach((l,i)=>{
+    cc.fillStyle=(i%2===0)?"#b58863":"#f0d9b5"; cc.font="10px 'DM Mono',monospace"; cc.textAlign="center";
+    cc.fillText(l,i*CH_SZ+CH_SZ/2,size-4);
+  });
+  [8,7,6,5,4,3,2,1].forEach((n,i)=>{
+    cc.fillStyle=(i%2===0)?"#b58863":"#f0d9b5"; cc.textAlign="left";
+    cc.fillText(n,4,i*CH_SZ+13);
+  });
   const px=size;
   cc.fillStyle="rgba(10,15,30,0.95)"; cc.fillRect(px,0,180,size);
   cc.font="13px 'DM Mono',monospace"; cc.fillStyle="#e2e8f0"; cc.textAlign="center";
@@ -1249,6 +1348,7 @@ function drawChess(){
   cc.fillText("Move "+s.moveNum,px+90,86);
   if(s.status){ cc.font="14px 'DM Mono',monospace"; cc.fillStyle="#f87171"; cc.fillText(s.status,px+90,size/2); }
 }
+
 function openChess(){
   closeAll();
   chessState={board:chInitBoard(),turn:"w",selected:null,moves:[],moveNum:1,status:""};
@@ -1545,8 +1645,12 @@ async function sendChat(){
       chatHistory.push({role:"assistant", content:reply});
     }
   } catch(e) {
+    console.error("Chat API error:", e);
     typingWrap.classList.remove("typing");
-    typingBubble.textContent = "network error — check your connection and try again";
+    const msg = e?.message?.includes("Failed to fetch") || e?.message?.includes("NetworkError")
+      ? "CORS error — Anthropic's API is blocking direct browser requests on this domain. This usually means the page needs to be served over HTTPS, not opened as a local file."
+      : `error: ${e?.message || "unknown — check browser console"}`;
+    typingBubble.textContent = msg;
   }
 
   chatMessages.scrollTop = chatMessages.scrollHeight;
