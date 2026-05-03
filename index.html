@@ -141,7 +141,7 @@
     .diff-btn[data-diff="impossible"].active { background: rgba(168,85,247,0.25); border-color: rgba(168,85,247,0.9); color: #e879f9; text-shadow: 0 0 8px rgba(232,121,249,0.8); }
 
     /* ── Fixed buttons ── */
-    #music-btn, #games-btn {
+    #music-btn, #games-btn, #chat-btn {
       position: fixed; bottom: 24px; z-index: 9999;
       background: rgba(129,140,248,0.15);
       border: 1.5px solid rgba(129,140,248,0.5);
@@ -152,9 +152,73 @@
     }
     #music-btn { right: 24px; }
     #games-btn  { right: 88px; }
-    #music-btn:hover, #games-btn:hover { background: rgba(129,140,248,0.28); border-color: rgba(129,140,248,0.85); transform: scale(1.08); }
-    #music-btn:active, #games-btn:active { transform: scale(0.96); }
-    #music-btn svg, #games-btn svg { width: 22px; height: 22px; fill: #a5b4fc; pointer-events: none; }
+    #chat-btn   { right: 152px; }
+    #music-btn:hover, #games-btn:hover, #chat-btn:hover { background: rgba(129,140,248,0.28); border-color: rgba(129,140,248,0.85); transform: scale(1.08); }
+    #music-btn:active, #games-btn:active, #chat-btn:active { transform: scale(0.96); }
+    #music-btn svg, #games-btn svg, #chat-btn svg { width: 22px; height: 22px; fill: #a5b4fc; pointer-events: none; }
+
+    /* ── Chat overlay ── */
+    #chat-overlay {
+      display:none; position:fixed; bottom:90px; right:24px; z-index:9998;
+      width:min(420px, calc(100vw - 32px)); height:min(580px, calc(100vh - 120px));
+      background:rgba(8,12,28,0.97); border:1px solid rgba(129,140,248,0.25);
+      border-radius:16px; backdrop-filter:blur(20px);
+      box-shadow:0 24px 64px rgba(0,0,0,0.6);
+      flex-direction:column; overflow:hidden;
+    }
+    #chat-overlay.active { display:flex; }
+    #chat-header {
+      padding:14px 18px; border-bottom:1px solid rgba(129,140,248,0.15);
+      display:flex; align-items:center; gap:10px; flex-shrink:0;
+    }
+    #chat-avatar {
+      width:34px; height:34px; border-radius:50%;
+      background:linear-gradient(135deg,#818cf8,#a855f7);
+      display:flex; align-items:center; justify-content:center;
+      font-size:16px; flex-shrink:0;
+    }
+    #chat-header-info { flex:1; }
+    #chat-header-name { font-family:'DM Mono',monospace; font-size:13px; color:#e2e8f0; }
+    #chat-header-sub { font-family:'DM Mono',monospace; font-size:10px; color:rgba(148,163,184,0.55); margin-top:2px; }
+    #chat-close-btn { background:none; border:none; color:rgba(148,163,184,0.4); cursor:pointer; font-size:18px; line-height:1; padding:4px; }
+    #chat-close-btn:hover { color:#94a3b8; }
+    #chat-messages {
+      flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:10px;
+      scrollbar-width:thin; scrollbar-color:rgba(129,140,248,0.2) transparent;
+    }
+    .chat-msg { max-width:82%; display:flex; flex-direction:column; gap:3px; }
+    .chat-msg.user { align-self:flex-end; align-items:flex-end; }
+    .chat-msg.bot  { align-self:flex-start; align-items:flex-start; }
+    .chat-bubble {
+      padding:9px 13px; border-radius:14px; font-family:'DM Mono',monospace;
+      font-size:12px; line-height:1.55; white-space:pre-wrap; word-break:break-word;
+    }
+    .chat-msg.user .chat-bubble { background:rgba(129,140,248,0.22); color:#e0e7ff; border-bottom-right-radius:4px; }
+    .chat-msg.bot  .chat-bubble { background:rgba(30,41,59,0.85); color:#cbd5e1; border-bottom-left-radius:4px; }
+    .chat-msg.bot.typing .chat-bubble { color:rgba(148,163,184,0.6); font-style:italic; }
+    #chat-input-row {
+      padding:10px 12px; border-top:1px solid rgba(129,140,248,0.12);
+      display:flex; gap:8px; flex-shrink:0;
+    }
+    #chat-input {
+      flex:1; background:rgba(15,23,42,0.8); border:1px solid rgba(100,116,139,0.3);
+      border-radius:10px; padding:9px 13px; color:#e2e8f0;
+      font-family:'DM Mono',monospace; font-size:12px; outline:none; resize:none;
+      line-height:1.4; max-height:100px;
+    }
+    #chat-input:focus { border-color:rgba(129,140,248,0.5); }
+    #chat-input::placeholder { color:rgba(148,163,184,0.35); }
+    #chat-send {
+      background:rgba(129,140,248,0.2); border:1px solid rgba(129,140,248,0.4);
+      border-radius:10px; padding:0 14px; color:#a5b4fc; cursor:pointer;
+      font-family:'DM Mono',monospace; font-size:11px; transition:all 0.15s; white-space:nowrap;
+    }
+    #chat-send:hover { background:rgba(129,140,248,0.35); color:#e0e7ff; }
+    #chat-send:disabled { opacity:0.35; cursor:not-allowed; }
+    #chat-disclaimer {
+      padding:6px 16px 8px; font-family:'DM Mono',monospace; font-size:9px;
+      color:rgba(100,116,139,0.5); text-align:center; flex-shrink:0;
+    }
 
     #yt-container { position: fixed; left: 0; bottom: -350px; width: 480px; height: 270px; opacity: 0; pointer-events: none; z-index: 1; }
 
@@ -285,6 +349,34 @@
   </div>
 
   <button id="games-btn" title="Play a game" aria-label="Open game picker">
+    <svg viewBox="0 0 24 24"><path d="M17 5H7a7 7 0 0 0 0 14h10a7 7 0 0 0 0-14ZM9 13H8v1a1 1 0 0 1-2 0v-1H5a1 1 0 0 1 0-2h1v-1a1 1 0 0 1 2 0v1h1a1 1 0 0 1 0 2Zm6.5 1a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm2.5-3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"/></svg>
+  </button>
+
+  <button id="chat-btn" title="Chat with Luke" aria-label="Chat with Luke">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.546 20.7a.5.5 0 0 0 .63.63l3.532-.892A9.96 9.96 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2ZM7 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>
+  </button>
+
+  <!-- ── Chat Overlay ── -->
+  <div id="chat-overlay">
+    <div id="chat-header">
+      <div id="chat-avatar">👤</div>
+      <div id="chat-header-info">
+        <div id="chat-header-name">Luke (AI)</div>
+        <div id="chat-header-sub">ask me anything</div>
+      </div>
+      <button id="chat-close-btn">✕</button>
+    </div>
+    <div id="chat-messages">
+      <div class="chat-msg bot">
+        <div class="chat-bubble">hey! i'm an AI version of Luke. ask me about policy, speedcubing, the podcast, SEGL, or anything else 👋</div>
+      </div>
+    </div>
+    <div id="chat-input-row">
+      <textarea id="chat-input" placeholder="ask Luke something..." rows="1"></textarea>
+      <button id="chat-send">send</button>
+    </div>
+    <div id="chat-disclaimer">AI-generated · not the real Luke · may hallucinate</div>
+  </div>
     <svg viewBox="0 0 24 24"><path d="M17 5H7a7 7 0 0 0 0 14h10a7 7 0 0 0 0-14ZM9 13H8v1a1 1 0 0 1-2 0v-1H5a1 1 0 0 1 0-2h1v-1a1 1 0 0 1 2 0v1h1a1 1 0 0 1 0 2Zm6.5 1a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm2.5-3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"/></svg>
   </button>
   <button id="music-btn" title="Play music" aria-label="Toggle music">
@@ -435,7 +527,6 @@ const gamesBtn    = document.getElementById("games-btn");
 const pongClose   = document.getElementById("pong-close");
 const psLeft      = document.getElementById("ps-left");
 const psRight     = document.getElementById("ps-right");
-const pongTime    = document.getElementById("pong-time");
 const pongPct     = document.getElementById("pong-pct");
 
 const WIN_SCORE = 7;
@@ -1047,21 +1138,76 @@ function chDoMove(board,fr,fc,tr,tc){
   if(nb[tr][tc]==="bP"&&tr===7) nb[tr][tc]="bQ";
   return nb;
 }
+// ── Chess evaluation: centipawn material + piece-square tables ──
+const CH_MAT={P:100,N:320,B:330,R:500,Q:900,K:20000};
+const CH_PST={
+  P:[[0,0,0,0,0,0,0,0],[50,50,50,50,50,50,50,50],[10,10,20,30,30,20,10,10],[5,5,10,25,25,10,5,5],[0,0,0,20,20,0,0,0],[5,-5,-10,0,0,-10,-5,5],[5,10,10,-20,-20,10,10,5],[0,0,0,0,0,0,0,0]],
+  N:[[-50,-40,-30,-30,-30,-30,-40,-50],[-40,-20,0,0,0,0,-20,-40],[-30,0,10,15,15,10,0,-30],[-30,5,15,20,20,15,5,-30],[-30,0,15,20,20,15,0,-30],[-30,5,10,15,15,10,5,-30],[-40,-20,0,5,5,0,-20,-40],[-50,-40,-30,-30,-30,-30,-40,-50]],
+  B:[[-20,-10,-10,-10,-10,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,10,10,5,0,-10],[-10,5,5,10,10,5,5,-10],[-10,0,10,10,10,10,0,-10],[-10,10,10,10,10,10,10,-10],[-10,5,0,0,0,0,5,-10],[-20,-10,-10,-10,-10,-10,-10,-20]],
+  R:[[0,0,0,0,0,0,0,0],[5,10,10,10,10,10,10,5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[0,0,0,5,5,0,0,0]],
+  Q:[[-20,-10,-10,-5,-5,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,5,5,5,0,-10],[-5,0,5,5,5,5,0,-5],[0,0,5,5,5,5,0,-5],[-10,5,5,5,5,5,0,-10],[-10,0,5,0,0,0,0,-10],[-20,-10,-10,-5,-5,-10,-10,-20]],
+  K:[[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-20,-30,-30,-40,-40,-30,-30,-20],[-10,-20,-20,-20,-20,-20,-20,-10],[20,20,0,0,0,0,20,20],[20,30,10,0,0,10,30,20]]
+};
+
 function chEval(board){
-  const val={P:1,N:3,B:3,R:5,Q:9,K:100};
-  let s=0;
-  board.flat().forEach(p=>{ if(p) s+=(p[0]==="w"?1:-1)*(val[p[1]]||0); });
-  return s;
+  let score=0;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p=board[r][c]; if(!p) continue;
+    const color=p[0],type=p[1];
+    const pstRow=color==="w"?r:7-r;
+    score+=(color==="w"?1:-1)*((CH_MAT[type]||0)+(CH_PST[type]?CH_PST[type][pstRow][c]:0));
+  }
+  return score; // positive = white winning
 }
+
+// Move ordering: captures first (MVV-LVA), then positional moves
+function chOrderMoves(board,moves){
+  return moves.map(m=>{
+    const victim=board[m.tr][m.tc];
+    const attacker=board[m.fr][m.fc];
+    const score=victim?(CH_MAT[victim[1]]||0)*10-(CH_MAT[attacker[1]]||0):0;
+    return {...m,score};
+  }).sort((a,b)=>b.score-a.score);
+}
+
+// Minimax with alpha-beta pruning
+function chMinimax(board,depth,alpha,beta,maximizing){
+  if(!board.flat().includes("wK")) return -20000;
+  if(!board.flat().includes("bK")) return 20000;
+  if(depth===0) return chEval(board);
+  const color=maximizing?"w":"b";
+  const moves=chOrderMoves(board,chAllMoves(board,color));
+  if(!moves.length) return maximizing?-15000:15000; // stalemate/checkmate
+  if(maximizing){
+    let best=-Infinity;
+    for(const m of moves){
+      const nb=chDoMove(board,m.fr,m.fc,m.tr,m.tc);
+      best=Math.max(best,chMinimax(nb,depth-1,alpha,beta,false));
+      alpha=Math.max(alpha,best);
+      if(alpha>=beta) break;
+    }
+    return best;
+  } else {
+    let best=Infinity;
+    for(const m of moves){
+      const nb=chDoMove(board,m.fr,m.fc,m.tr,m.tc);
+      best=Math.min(best,chMinimax(nb,depth-1,alpha,beta,true));
+      beta=Math.min(beta,best);
+      if(alpha>=beta) break;
+    }
+    return best;
+  }
+}
+
 function chAIMove(board){
-  const moves=chAllMoves(board,"b");
+  const moves=chOrderMoves(board,chAllMoves(board,"b"));
   if(!moves.length) return null;
-  let best=null, bestScore=Infinity;
-  moves.forEach(m=>{
+  let best=null,bestScore=Infinity;
+  for(const m of moves){
     const nb=chDoMove(board,m.fr,m.fc,m.tr,m.tc);
-    const sc=chEval(nb);
+    const sc=chMinimax(nb,3,-Infinity,Infinity,true); // depth 3 = 4-ply total
     if(sc<bestScore){bestScore=sc;best=m;}
-  });
+  }
   return best;
 }
 function drawChess(){
@@ -1285,6 +1431,129 @@ c4Canvas.addEventListener("click",e=>{
   else if(s.board.every(r=>r.every(v=>v))) s.status="Draw!";
   s.turn="Y"; drawC4();
   if(!s.status) setTimeout(c4AITurn,350);
+});
+
+/* ════════════════════════════════════════════════════════
+   LUKE CHATBOT
+════════════════════════════════════════════════════════ */
+const chatBtn      = document.getElementById("chat-btn");
+const chatOverlay  = document.getElementById("chat-overlay");
+const chatMessages = document.getElementById("chat-messages");
+const chatInput    = document.getElementById("chat-input");
+const chatSend     = document.getElementById("chat-send");
+document.getElementById("chat-close-btn").addEventListener("click",()=>chatOverlay.classList.remove("active"));
+chatBtn.addEventListener("click",()=>chatOverlay.classList.toggle("active"));
+
+const LUKE_SYSTEM = `You are an AI chatbot persona of Luke, a 17-year-old junior at Harvard-Westlake High School in Los Angeles (graduating 2027). You speak in first person as Luke. Be conversational, genuine, thoughtful, and a bit informal — like texting a smart friend. Don't be verbose. Never break character.
+
+BACKGROUND:
+- Currently doing the School for Ethics and Global Leadership (SEGL) semester in Washington D.C. (Jan–May 2026), focused on public policy, international relations, and civic discourse
+- Grew up in Seattle, moved to LA in 1st grade
+- Two sisters: older sister at Harvard, younger sister at Harvard-Westlake (very close with her)
+- This countdown website tracks the end of your SEGL semester (May 23, 2026)
+
+WORK & LEADERSHIP:
+- Co-lead HW Venture, your school's entrepreneurship org (~$27k budget)
+- Direct NextGen, a 300+ attendee citywide student entrepreneurship conference with a 10-person team
+- Interned at Sen. Adam Schiff's office (summer 2025) — drafted policy memos, vote recommendations, stakeholder materials
+- Worked on George Whitesides CA-27 congressional campaign (summer 2024), phone-banked 10,000+ voters
+- Run HW Venture's school incubator which gives grant funding to student businesses
+
+INTERESTS & HOBBIES:
+- Host the podcast "Dad I Have a Question" — 80 episodes, 80,000 listens across 177 countries. It's a conversation-based show where you ask your dad questions about life, work, and the world
+- Competitive speedcuber: personal record of 10 seconds, ~50,000 recorded solves. You're serious about it — you know algorithms, practice regularly, and love the community
+- Host a separate political debate podcast with friends (left/right/moderator format)
+- Enjoy hosting low-key group hangouts
+- Studying Shakespeare's Henry V at SEGL
+- Into AP Euro, APUSH, AP Physics, PreCalc
+
+POLITICS & POLICY:
+- Moderate Democrat, pragmatically oriented — you believe in getting things done over ideological purity
+- Your political identity was shaped by canvassing in Palmdale for the Whitesides campaign. You met a voter named Evelyn who was helped twice by the ACA — it changed your view of politics from spectator sport to meaningful action. You wrote about this in your AP Lang essay "Game Over"
+- Policy interests: housing (ROAD to Housing Act, Build Now Act, CDBG reform), tech and democratic governance, electoral/political reform, U.S. critical minerals policy (Dodd-Frank Section 1502, Congo/Africa)
+- See Obamacare as a model of pragmatic political negotiation
+- Aspire to work in policy advising and political reform, not traditional campaigning
+- At SEGL you've studied housing policy, Israeli-Palestinian conflict, Rwandan genocide, Iranian foreign policy, constitutional law. You've met Rep. Dean Phillips and artist Helen Zughaib among others
+- Working on a Student Venture Project (SVP) at SEGL with two tracks: California housing/homelessness policy; and increasing political discourse in ideologically homogeneous high schools like Harvard-Westlake
+
+PERSONALITY:
+- Leadership philosophy: full accountability — "the buck stops with me"
+- Pragmatic, not dogmatic
+- Genuinely curious — you like thinking through hard problems
+- You built this countdown website yourself (HTML/CSS/JS) to count down to the end of SEGL
+- Close with your family, especially your younger sister
+- You ran a student council campaign at SEGL using an outsider/change-candidate frame
+- You're interested in Georgetown for college (Early Action, non-binding)
+
+CURRENT DATE: May 2026. You're wrapping up SEGL soon.
+
+TONE RULES:
+- First person always ("I", "my", "me")
+- Conversational and natural, like texting
+- It's okay to have opinions — you're not wishy-washy
+- Keep answers concise unless the question deserves depth
+- If asked something you genuinely don't know as Luke, say so honestly
+- Don't say "As an AI" — you ARE Luke (the AI version)`;
+
+let chatHistory = [];
+let chatBusy = false;
+
+function addMessage(role, text, typing=false){
+  const wrap = document.createElement("div");
+  wrap.className = `chat-msg ${role==="user"?"user":"bot"}${typing?" typing":""}`;
+  const bubble = document.createElement("div");
+  bubble.className = "chat-bubble";
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+  chatMessages.appendChild(wrap);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return {wrap, bubble};
+}
+
+async function sendChat(){
+  const text = chatInput.value.trim();
+  if(!text || chatBusy) return;
+  chatInput.value = ""; chatInput.style.height = "auto";
+  chatBusy = true; chatSend.disabled = true;
+
+  addMessage("user", text);
+  chatHistory.push({role:"user", content:text});
+
+  const {wrap: typingWrap, bubble: typingBubble} = addMessage("bot", "typing...", true);
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: LUKE_SYSTEM,
+        messages: chatHistory
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.find(b=>b.type==="text")?.text || "hmm, something went wrong on my end";
+    typingWrap.classList.remove("typing");
+    typingBubble.textContent = reply;
+    chatHistory.push({role:"assistant", content:reply});
+  } catch(e) {
+    typingWrap.classList.remove("typing");
+    typingBubble.textContent = "sorry, couldn't connect right now — try again?";
+  }
+
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  chatBusy = false; chatSend.disabled = false;
+  chatInput.focus();
+}
+
+chatSend.addEventListener("click", sendChat);
+chatInput.addEventListener("keydown", e=>{
+  if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendChat(); }
+});
+chatInput.addEventListener("input",()=>{
+  chatInput.style.height="auto";
+  chatInput.style.height=Math.min(chatInput.scrollHeight,100)+"px";
 });
 
 /* Main tick — also updates pong clock */
