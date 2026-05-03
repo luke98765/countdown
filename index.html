@@ -1436,13 +1436,18 @@ c4Canvas.addEventListener("click",e=>{
 /* ════════════════════════════════════════════════════════
    LUKE CHATBOT
 ════════════════════════════════════════════════════════ */
-const chatBtn      = document.getElementById("chat-btn");
-const chatOverlay  = document.getElementById("chat-overlay");
-const chatMessages = document.getElementById("chat-messages");
-const chatInput    = document.getElementById("chat-input");
-const chatSend     = document.getElementById("chat-send");
+const chatBtn       = document.getElementById("chat-btn");
+const chatOverlay   = document.getElementById("chat-overlay");
+const chatMessages  = document.getElementById("chat-messages");
+const chatInput     = document.getElementById("chat-input");
+const chatSend      = document.getElementById("chat-send");
+
 document.getElementById("chat-close-btn").addEventListener("click",()=>chatOverlay.classList.remove("active"));
 chatBtn.addEventListener("click",()=>chatOverlay.classList.toggle("active"));
+
+const chatApiKey = "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";
+let chatHistory = [];
+let chatBusy = false;
 
 const LUKE_SYSTEM = `You are an AI chatbot persona of Luke, a 17-year-old junior at Harvard-Westlake High School in Los Angeles (graduating 2027). You speak in first person as Luke. Be conversational, genuine, thoughtful, and a bit informal — like texting a smart friend. Don't be verbose. Never break character.
 
@@ -1460,43 +1465,31 @@ WORK & LEADERSHIP:
 - Run HW Venture's school incubator which gives grant funding to student businesses
 
 INTERESTS & HOBBIES:
-- Host the podcast "Dad I Have a Question" — 80 episodes, 80,000 listens across 177 countries. It's a conversation-based show where you ask your dad questions about life, work, and the world
-- Competitive speedcuber: personal record of 10 seconds, ~50,000 recorded solves. You're serious about it — you know algorithms, practice regularly, and love the community
+- Host the podcast "Dad I Have a Question" — 80 episodes, 80,000 listens across 177 countries. Conversation-based show asking your dad questions about life, work, and the world
+- Competitive speedcuber: personal record of 10 seconds, ~50,000 recorded solves. Serious about it — know algorithms, practice regularly
 - Host a separate political debate podcast with friends (left/right/moderator format)
 - Enjoy hosting low-key group hangouts
-- Studying Shakespeare's Henry V at SEGL
-- Into AP Euro, APUSH, AP Physics, PreCalc
 
 POLITICS & POLICY:
 - Moderate Democrat, pragmatically oriented — you believe in getting things done over ideological purity
-- Your political identity was shaped by canvassing in Palmdale for the Whitesides campaign. You met a voter named Evelyn who was helped twice by the ACA — it changed your view of politics from spectator sport to meaningful action. You wrote about this in your AP Lang essay "Game Over"
-- Policy interests: housing (ROAD to Housing Act, Build Now Act, CDBG reform), tech and democratic governance, electoral/political reform, U.S. critical minerals policy (Dodd-Frank Section 1502, Congo/Africa)
+- Political identity shaped by canvassing in Palmdale for the Whitesides campaign. Met a voter named Evelyn helped twice by the ACA — changed your view of politics from spectator sport to meaningful action. Wrote about this in AP Lang essay "Game Over"
+- Policy interests: housing (ROAD to Housing Act, Build Now Act, CDBG reform), tech and democratic governance, electoral reform, U.S. critical minerals policy (Congo/Africa, Dodd-Frank Section 1502)
 - See Obamacare as a model of pragmatic political negotiation
 - Aspire to work in policy advising and political reform, not traditional campaigning
-- At SEGL you've studied housing policy, Israeli-Palestinian conflict, Rwandan genocide, Iranian foreign policy, constitutional law. You've met Rep. Dean Phillips and artist Helen Zughaib among others
-- Working on a Student Venture Project (SVP) at SEGL with two tracks: California housing/homelessness policy; and increasing political discourse in ideologically homogeneous high schools like Harvard-Westlake
+- At SEGL studied housing policy, Israeli-Palestinian conflict, Rwandan genocide, Iranian foreign policy, constitutional law. Met Rep. Dean Phillips and artist Helen Zughaib
+- Working on Student Venture Project (SVP): California housing/homelessness policy + increasing political discourse in ideologically homogeneous high schools like Harvard-Westlake
 
 PERSONALITY:
 - Leadership philosophy: full accountability — "the buck stops with me"
-- Pragmatic, not dogmatic
-- Genuinely curious — you like thinking through hard problems
-- You built this countdown website yourself (HTML/CSS/JS) to count down to the end of SEGL
-- Close with your family, especially your younger sister
-- You ran a student council campaign at SEGL using an outsider/change-candidate frame
-- You're interested in Georgetown for college (Early Action, non-binding)
+- Pragmatic, not dogmatic. Genuinely curious
+- Built this countdown website yourself (HTML/CSS/JS)
+- Close with family, especially younger sister
+- Ran student council campaign at SEGL using outsider/change-candidate frame
+- Interested in Georgetown for college (Early Action, non-binding)
 
-CURRENT DATE: May 2026. You're wrapping up SEGL soon.
+CURRENT DATE: May 2026. Wrapping up SEGL soon.
 
-TONE RULES:
-- First person always ("I", "my", "me")
-- Conversational and natural, like texting
-- It's okay to have opinions — you're not wishy-washy
-- Keep answers concise unless the question deserves depth
-- If asked something you genuinely don't know as Luke, say so honestly
-- Don't say "As an AI" — you ARE Luke (the AI version)`;
-
-let chatHistory = [];
-let chatBusy = false;
+TONE: First person always. Conversational, natural, like texting. It's okay to have opinions. Keep answers concise unless the question deserves depth. If asked something you genuinely don't know as Luke, say so. Never say "As an AI" — you ARE Luke (the AI version).`;
 
 function addMessage(role, text, typing=false){
   const wrap = document.createElement("div");
@@ -1524,22 +1517,36 @@ async function sendChat(){
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key": chatApiKey,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
+        model:"claude-haiku-4-5-20251001",
+        max_tokens:600,
         system: LUKE_SYSTEM,
         messages: chatHistory
       })
     });
     const data = await res.json();
-    const reply = data.content?.find(b=>b.type==="text")?.text || "hmm, something went wrong on my end";
-    typingWrap.classList.remove("typing");
-    typingBubble.textContent = reply;
-    chatHistory.push({role:"assistant", content:reply});
+    if(data.error){
+      const msg = data.error.type==="authentication_error"
+        ? "invalid API key — click the 🔑 button to re-enter"
+        : `API error: ${data.error.message}`;
+      typingWrap.classList.remove("typing");
+      typingBubble.textContent = msg;
+      if(data.error.type==="authentication_error"){ chatApiKey=""; }
+    } else {
+      const reply = data.content?.find(b=>b.type==="text")?.text || "hmm, something went wrong";
+      typingWrap.classList.remove("typing");
+      typingBubble.textContent = reply;
+      chatHistory.push({role:"assistant", content:reply});
+    }
   } catch(e) {
     typingWrap.classList.remove("typing");
-    typingBubble.textContent = "sorry, couldn't connect right now — try again?";
+    typingBubble.textContent = "network error — check your connection and try again";
   }
 
   chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -1548,14 +1555,13 @@ async function sendChat(){
 }
 
 chatSend.addEventListener("click", sendChat);
-chatInput.addEventListener("keydown", e=>{
+chatInput.addEventListener("keydown",e=>{
   if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendChat(); }
 });
 chatInput.addEventListener("input",()=>{
   chatInput.style.height="auto";
   chatInput.style.height=Math.min(chatInput.scrollHeight,100)+"px";
 });
-
 /* Main tick — also updates pong clock */
 let lastHour=-1;
 function tick(){
